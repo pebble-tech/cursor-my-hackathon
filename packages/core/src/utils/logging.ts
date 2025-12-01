@@ -87,4 +87,3 @@ export const logInfo = (...messages: LogMessage[]): void => log(LogLevel.INFO, .
 export const logWarning = (...messages: LogMessage[]): void => log(LogLevel.WARNING, ...messages);
 export const logError = (...messages: LogMessage[]): void => log(LogLevel.ERROR, ...messages);
 export const logFatal = (...messages: LogMessage[]): void => log(LogLevel.FATAL, ...messages);
-

@@ -25,7 +25,7 @@
 │                              │         ┌─────────────────┴─────────────────┐ │
 │                              │         │                                   │ │
 │                              │         ▼                                   ▼ │
-│                              │  Phase 6: Food Check-in      Phase 7: Email   │
+│                              │  Phase 6: Check-in System    Phase 7: Email   │
 │                              │         │                                   │ │
 │                              │         └─────────────────┬─────────────────┘ │
 │                              │                           ▼                   │
@@ -38,48 +38,50 @@
 
 ## Phase 1: Database Schema & Authentication
 
-**Status:** Not Started  
+**Status:** ✅ Completed  
 **Priority:** Critical  
 **Estimated Effort:** 1 day  
 **Dependencies:** None
 
 ### Tasks
 
-- [ ] 1.1 Create hackathon schema files in `packages/core/src/hackathon.server/schemas/`
-  - [ ] Enums: `user_role`, `participant_type`, `participant_status`, `code_status`, `meal_type`
-  - [ ] `credit-types.sql.ts`
-  - [ ] `codes.sql.ts`
-  - [ ] `food-checkins.sql.ts`
-  - [ ] `relations.ts`
-  - [ ] `index.ts` (exports)
+- [x] 1.1 Create event schema files in `packages/core/src/business.server/events/schemas/`
+  - [x] Enums: `code_status`, `checkin_type` (attendance | meal)
+  - [x] `credit-types.sql.ts`
+  - [x] `codes.sql.ts`
+  - [x] `checkin-types.sql.ts` (admin-configurable check-in categories)
+  - [x] `checkin-records.sql.ts` (check-in log entries)
+  - [x] `schema.ts` (exports + relations)
 
-- [ ] 1.2 Extend `UsersTable` in `packages/core/src/auth/schema.ts`
-  - [ ] Add `lumaId`, `role`, `participantType`, `status`, `checkedInAt`, `checkedInBy`, `qrCodeValue`
-  - [ ] Add indexes
+- [x] 1.2 Extend `UsersTable` in `packages/core/src/auth/schema.ts`
+  - [x] Add `lumaId`, `role`, `participantType`, `status`, `checkedInAt`, `checkedInBy`, `qrCodeValue`
+  - [x] Add indexes
 
-- [ ] 1.3 Generate and run migrations
-  - [ ] `pnpm db:generate`
-  - [ ] `pnpm db:migrate`
+- [x] 1.3 Generate and run migrations
+  - [x] `pnpm db:generate`
+  - [ ] `pnpm db:migrate` (pending user review/application)
 
-- [ ] 1.4 Configure Better Auth with magic link plugin
-  - [ ] Add `magicLink` plugin to `auth.ts`
-  - [ ] Configure `disableSignUp: true`
-  - [ ] Add VIP login prevention in `sendMagicLink`
+- [x] 1.4 Configure Better Auth with magic link plugin
+  - [x] Add `magicLink` plugin to `auth.ts`
+  - [x] Configure `disableSignUp: true`
+  - [x] Add VIP login prevention in `sendMagicLink`
 
-- [ ] 1.5 Update auth client with `magicLinkClient` plugin
-  - [ ] Update `apps/web/src/utils/auth-client.ts`
+- [x] 1.5 Update auth client with `magicLinkClient` plugin
+  - [x] Update `apps/web/src/utils/auth-client.ts`
 
-- [ ] 1.6 Create QR code utilities in `packages/core/src/hackathon.server/`
-  - [ ] `qr-code.ts` with `generateQRCodeValue()` and `verifyQRCodeValue()`
+- [x] 1.6 Create QR code utilities in `packages/core/src/business.server/events/`
+  - [x] `events.ts` with `generateQRCodeValue()` and `verifyQRCodeValue()`
 
-- [ ] 1.7 Add environment variables
-  - [ ] `QR_SECRET_KEY` (min 32 chars)
-  - [ ] `RESEND_API_KEY`
+- [x] 1.7 Add environment variables
+  - [x] `QR_SECRET_KEY` (min 32 chars)
+  - [x] `RESEND_API_KEY`
 
 ### Deliverable
-- Migrations run successfully
-- Magic link login flow works (email sending can be stubbed with console.log)
-- QR code generation utility tested
+- ✅ Migrations generated (pending review/application)
+- ✅ Magic link login flow configured
+- ✅ QR code generation utility implemented
+- ✅ Email client and templates created
+- ✅ Seed script created
 
 ---
 
@@ -238,8 +240,10 @@
   - [ ] Lookup participant
 
 - [ ] 5.4 Check-in processing
+  - [ ] Select "Day 1 Attendance" check-in type
   - [ ] Validate status is 'registered'
-  - [ ] Update to 'checked_in'
+  - [ ] Create checkin_record for "Day 1 Attendance"
+  - [ ] Update participant status to 'checked_in'
   - [ ] Set `checkedInAt` and `checkedInBy`
 
 - [ ] 5.5 Code assignment algorithm
@@ -273,7 +277,7 @@
 
 ---
 
-## Phase 6: Ops - Food Check-in
+## Phase 6: Ops - Check-in System
 
 **Status:** Not Started  
 **Priority:** High  
@@ -282,31 +286,40 @@
 
 ### Tasks
 
-- [ ] 6.1 Mode toggle
-  - [ ] Registration / Food tabs or toggle
+- [ ] 6.1 Check-in type selector
+  - [ ] Fetch active check-in types from DB (ordered)
+  - [ ] Display as selectable list (Day 1 Attendance, Day 1 Lunch, etc.)
   - [ ] Persist selection
 
-- [ ] 6.2 Meal type selector
-  - [ ] Radio buttons: LUNCH_D1, DINNER_D1, BREAKFAST_D2
-  - [ ] Clear labels with date/time
+- [ ] 6.2 Check-in Guest flow
+  - [ ] Select check-in type first
+  - [ ] Scan participant QR
+  - [ ] Show participant info + status for selected type only
+  - [ ] "Check In" button if not already checked in
 
-- [ ] 6.3 Food check-in server function
-  - [ ] Validate participant is checked in
-  - [ ] Check for duplicate claim (unique constraint)
-  - [ ] Insert food_checkin record
+- [ ] 6.3 Check-in server function
+  - [ ] Validate participant exists
+  - [ ] Check for duplicate (unique constraint)
+  - [ ] Insert checkin_record
   - [ ] Handle duplicate gracefully
 
-- [ ] 6.4 Food claim counter
-  - [ ] Count per selected meal type
+- [ ] 6.4 Check Guest Status flow
+  - [ ] Separate screen/mode
+  - [ ] Scan participant QR
+  - [ ] Query all check-in types with status for participant
+  - [ ] Display list with checkmarks for completed
+
+- [ ] 6.5 Check-in counter
+  - [ ] Count per selected check-in type
   - [ ] Refresh on each scan
 
-- [ ] 6.5 Already claimed error display
-  - [ ] Show timestamp of original claim
+- [ ] 6.6 Already checked in error display
+  - [ ] Show timestamp of original check-in
   - [ ] Clear error message
 
 ### Deliverable
-- Ops can switch to food mode
-- Scan for meal claims
+- Ops can select check-in type and process check-ins
+- Check Guest Status shows all check-in statuses
 - Duplicates rejected with clear message
 
 ---
@@ -367,7 +380,7 @@
 
 - [ ] 8.1 Overview stats dashboard
   - [ ] Total registered / checked in
-  - [ ] Food claims per meal
+  - [ ] Check-ins per type
   - [ ] Codes assigned per type
 
 - [ ] 8.2 Participant search and detail view
@@ -429,7 +442,7 @@
 │                                                                              │
 │  Dec 4-5 (Thu-Fri)                                                           │
 │  ├── Phase 5: Registration Check-in (complete)                               │
-│  ├── Phase 6: Food Check-in                                                  │
+│  ├── Phase 6: Check-in System                                                 │
 │  └── Phase 8: Admin Dashboard & Polish                                       │
 │                                                                              │
 │  Dec 5 (Fri)                                                                 │
@@ -452,7 +465,7 @@
 | 3 | Login as participant, view QR, test copy button |
 | 4 | Create credit type, import 10 codes |
 | 5 | Full check-in: scan → status update → codes assigned |
-| 6 | Food scan with duplicate rejection |
+| 6 | Check-in type selection, check-in scan, duplicate rejection |
 | 7 | Receive all email types in inbox |
 | 8 | End-to-end with 100+ test users, stress test scanner |
 

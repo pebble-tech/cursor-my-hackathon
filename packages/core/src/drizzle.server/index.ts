@@ -1,7 +1,17 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 
 import { AccountsTable, SessionsTable, UsersTable, VerificationsTable } from '~/auth/schema';
-import { CommentsTable, PostsTable, commentsRelations, postsRelations } from '~/business.server/posts/schemas/schema';
+import {
+  CreditTypesTable,
+  CodesTable,
+  CheckinTypesTable,
+  CheckinRecordsTable,
+  usersRelations,
+  creditTypesRelations,
+  codesRelations,
+  checkinTypesRelations,
+  checkinRecordsRelations,
+} from '~/business.server/events/schemas/schema';
 import { env } from '~/config/env';
 
 export {
@@ -30,10 +40,15 @@ export const schema = {
   sessions: SessionsTable,
   accounts: AccountsTable,
   verifications: VerificationsTable,
-  comments: CommentsTable,
-  posts: PostsTable,
-  commentsRelations,
-  postsRelations,
+  creditTypes: CreditTypesTable,
+  codes: CodesTable,
+  checkinTypes: CheckinTypesTable,
+  checkinRecords: CheckinRecordsTable,
+  usersRelations,
+  creditTypesRelations,
+  codesRelations,
+  checkinTypesRelations,
+  checkinRecordsRelations,
 };
 
 export const db = drizzle(env.DATABASE_URL, {

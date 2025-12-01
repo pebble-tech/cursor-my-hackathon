@@ -8,6 +8,9 @@ const EnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  QR_SECRET_KEY: z.string().min(32),
+  RESEND_API_KEY: z.string().min(1),
+  EMAIL_FROM: z.string().default('noreply@cursorhackathon.pebbletech.my'),
 });
 
 export const env = EnvSchema.parse(process.env);

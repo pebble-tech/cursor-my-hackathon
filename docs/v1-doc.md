@@ -16,7 +16,7 @@ The Cursor x Anthropic MY Hackathon Platform is a comprehensive event management
 
 1. **Simplified Check-in Process**: Enable fast, QR-based check-in for participants and VIPs
 2. **Automated Credit Distribution**: Distribute sponsor credits (Cursor, Anthropic, ElevenLabs, etc.) to participants upon check-in on a first-come-first-serve basis
-3. **Food Voucher Management**: Prevent duplicate food claims across multiple meal sessions (lunch, dinner, breakfast)
+3. **Flexible Check-in System**: Admin-configurable check-in types (attendance, meals) with duplicate prevention
 4. **VIP Handling**: Provide special treatment for VIP guests with permanent QR codes and no credit distribution
 5. **Self-Service Platform**: Allow participants to access their QR codes and credits via web dashboard
 
@@ -25,7 +25,7 @@ The Cursor x Anthropic MY Hackathon Platform is a comprehensive event management
 - **Pre-Event Guest Import**: Bulk import approved participants from Luma CSV
 - **Magic Link Authentication**: Passwordless login using email magic links
 - **Permanent QR Codes**: Single QR code per participant for all interactions (check-in + food)
-- **First-Come-First-Serve Credits**: Automatic code assignment during check-in until pool exhausts
+- **First-Come-First-Serve Credits**: Automatic code assignment during registration check-in until pool exhausts
 - **Ops Scanner Interface**: Dedicated dashboard for operations volunteers to scan QR codes
 - **Email Notifications**: Automated emails with credits and QR codes after check-in
 - **VIP Management**: Separate workflow for VIP guests with email-only QR distribution
@@ -34,7 +34,7 @@ The Cursor x Anthropic MY Hackathon Platform is a comprehensive event management
 
 - 1,000 participants imported and ready before event day
 - 95%+ successful check-ins on event day (Dec 6)
-- Zero duplicate food claims across all meal sessions
+- Zero duplicate check-ins across all check-in types
 - < 30 seconds average check-in time per participant
 - All participants receive credit codes within 2 minutes of check-in
 
@@ -137,7 +137,7 @@ Prevents Duplicates
 **Permissions:**
 - ❌ Cannot login to platform
 - ✅ Receives permanent QR code via email
-- ✅ Can use QR for food check-in only
+- ✅ Can use QR for check-ins only
 - ❌ Does not receive credit codes
 - ❌ No dashboard access
 
@@ -157,7 +157,7 @@ Prevents Duplicates
 - ✅ Login to ops dashboard
 - ✅ Scan participant QR codes
 - ✅ Process check-ins (registration desk)
-- ✅ Process food check-ins (meal stations)
+- ✅ Process check-ins (all types)
 - ✅ View real-time check-in counts
 - ✅ View recent scan history
 - ❌ Cannot edit participant data
@@ -166,8 +166,8 @@ Prevents Duplicates
 
 **Dashboard Features:**
 - QR scanner interface (camera access)
-- Check-in mode toggle (Registration / Food)
-- Meal type selector for food check-ins
+- Check-in type selector (admin-configurable, e.g., Day 1 Attendance, Day 1 Lunch)
+- Check Guest Status mode (view all check-in statuses)
 - Real-time feedback (success/error messages)
 - Participant name display after scan
 - Check-in counters and statistics
@@ -392,12 +392,11 @@ If you didn't request this, please ignore this email.
 2. Extract `participant_id`
 3. Verify HMAC signature
 4. Look up participant in database
-5. Check session type (check-in vs food)
-6. Validate against business rules
+5. Validate against business rules for selected check-in type
 
 **Validation Logic:**
 
-**For Check-in Session:**
+**For Registration Check-in (Day 1 Attendance):**
 ```
 IF participant.status == "registered":
   ✓ Valid - proceed with check-in
@@ -405,14 +404,14 @@ ELSE IF participant.status == "checked_in":
   ✗ Invalid - already checked in
 ```
 
-**For Food Session:**
+**For Other Check-in Types:**
 ```
 IF participant.status != "checked_in":
-  ✗ Invalid - not checked in yet
+  ✗ Invalid - must check in at registration first
 ELSE:
-  Check food_checkins table for meal_type
-  IF already claimed:
-    ✗ Invalid - duplicate claim
+  Check checkin_records table for checkin_type
+  IF already checked in:
+    ✗ Invalid - duplicate check-in
   ELSE:
     ✓ Valid - proceed
 ```
@@ -453,10 +452,11 @@ ELSE:
 4. Shows QR to ops volunteer
 
 **Ops Actions:**
-1. Opens ops dashboard (check-in mode)
-2. Points camera at participant's QR code
-3. Waits for scan result
-4. Confirms success or handles error
+1. Opens ops dashboard
+2. Selects "Day 1 Attendance" check-in type
+3. Points camera at participant's QR code
+4. Waits for scan result
+5. Confirms success or handles error
 
 **System Actions:**
 1. Decodes QR code payload
@@ -465,10 +465,11 @@ ELSE:
 4. Checks current status:
    - If `registered`: Proceed to step 5
    - If `checked_in`: Show error "Already checked in at [time]"
-5. Updates participant: `status = "checked_in"`, `checked_in_at = NOW()`
-6. **Assigns codes** (see 4.2 below)
-7. Sends check-in confirmation email
-8. Shows success message to ops
+5. Creates checkin_record for "Day 1 Attendance"
+6. Updates participant: `status = "checked_in"`, `checked_in_at = NOW()`
+7. **Assigns codes** (see 4.2 below)
+8. Sends check-in confirmation email
+9. Shows success message to ops
 
 **Success Display (Ops):**
 ```
@@ -613,7 +614,7 @@ You### 5. Credit Management System
 **Business Rules:**
 - Name must be unique
 - Display order determines sort position in participant dashboard
-- Inactive credit types won't assign codes during check-in
+- Inactive credit types won't assign codes during registration check-in
 - Instructions are shared by all codes of this type
 
 **Example Credit Types:**
@@ -662,7 +663,7 @@ GHI789DEF,https://cursor.com/redeem
 **Code Status After Import:**
 - `status: unassigned`
 - `assigned_to: NULL`
-- Ready for assignment during check-in
+- Ready for assignment during registration check-in
 
 #### 5.3 Code Pool Management
 
@@ -677,34 +678,49 @@ GHI789DEF,https://cursor.com/redeem
 - No error shown to participant (only see what they got)
 - Admin can monitor pool status (Phase 2 feature)
 
-### 6. Food Check-in System
+### 6. Check-in System
 
-#### 6.1 Meal Sessions
+#### 6.1 Flexible Check-in Types
 
-**Defined Meal Types:**
+**Design:** Admin-configurable check-in categories instead of hardcoded meal types.
 
-| Meal Type | Date | Time | Location |
-|-----------|------|------|----------|
-| LUNCH_D1 | Dec 6 | 12:00 PM | Level 2 |
-| DINNER_D1 | Dec 6 | 6:00 PM | Level 2 |
-| BREAKFAST_D2 | Dec 7 | 9:00 AM | Level 2 |
+**Check-in Type Schema:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | cuid | Primary key |
+| name | text | Unique name (e.g., "Day 1 Attendance") |
+| type | enum | 'attendance' or 'meal' |
+| description | text | Instructions shown to ops |
+| displayOrder | int | Order in ops UI |
+| isActive | boolean | Can disable without deleting |
+
+**Example Check-in Types (seeded by admin):**
+
+| name | type | display_order |
+|------|------|---------------|
+| Day 1 Attendance | attendance | 1 |
+| Day 1 Lunch | meal | 2 |
+| Day 1 Dinner | meal | 3 |
+| Day 2 Attendance | attendance | 4 |
+| Day 2 Breakfast | meal | 5 |
 
 **Business Rules:**
-- Each participant can claim each meal type exactly once
-- Must be checked in first (registration check-in required)
-- VIPs can claim meals without receiving credits
-- Same QR code used for all meal claims
+- Each participant can complete each check-in type exactly once
+- Must be checked in (Day 1 Attendance) before completing other check-in types
+- VIPs can complete check-ins without receiving credits
+- Same QR code used for all check-in types
+- Admin can add/modify check-in types before event
 
-#### 6.2 Food Check-in Flow
+#### 6.2 Check-in Guest Flow (Ops)
 
-**Location:** Food stations at Level 2  
-**Staff:** Ops volunteers with scanner devices
+**Purpose:** Fast, single-purpose check-in for a specific type.
 
 **Step-by-Step Process:**
 
 **Ops Actions:**
-1. Opens ops dashboard (food check-in mode)
-2. Selects meal type from dropdown (LUNCH_D1 / DINNER_D1 / BREAKFAST_D2)
+1. Opens ops dashboard
+2. Selects check-in type from list (e.g., "Day 1 Lunch")
 3. Scanner camera activates
 4. Scans participant's QR code
 
@@ -712,63 +728,77 @@ GHI789DEF,https://cursor.com/redeem
 1. Decodes QR code payload
 2. Verifies signature
 3. Looks up participant
-4. Validates participant is checked in:
-   - If NOT checked in: Show error "Not checked in yet"
-5. Queries `food_checkins` table:
-   ```sql
-   SELECT * FROM food_checkins 
-   WHERE participant_id = ? 
-   AND meal_type = ?
-   ```
-6. If record exists: Show error "Already claimed [meal] at [time]"
-7. If no record:
-   - Insert food check-in record
+4. Queries `checkin_records` for this type + participant
+5. If record exists: Show error "Already checked in at [time]"
+6. If no record:
+   - Insert checkin_record
    - Show success with participant name
    - Update real-time counter
 
 **Success Display (Ops):**
 ```
 ✓ John Doe
-Lunch claimed successfully
+Day 1 Lunch - Checked in successfully
 ```
 
 **If VIP:**
 ```
 ✓ Jane Sponsor 🌟 VIP
-Lunch claimed successfully
+Day 1 Lunch - Checked in successfully
 ```
 
 **Error Display (Ops):**
 ```
 ⚠️ John Doe
-Already claimed lunch at 12:15 PM
+Already checked in at 12:15 PM
 ```
 
+#### 6.3 Check Guest Status Flow (Ops)
+
+**Purpose:** View all check-in statuses for a participant.
+
+**Step-by-Step Process:**
+
+**Ops Actions:**
+1. Opens "Check Guest Status" screen
+2. Scans participant's QR code
+
+**System Actions:**
+1. Verify QR and lookup participant
+2. Query all active check-in types (ordered)
+3. Left join with checkin_records for this participant
+4. Return list with completion status
+
+**Display:**
 ```
-⚠️ Sarah Lee
-Not checked in yet
-Please check in at registration first
+John Doe
+━━━━━━━━━━━━━━━━━━━━━━━
+✓ Day 1 Attendance - 9:15 AM
+✓ Day 1 Lunch - 12:15 PM
+☐ Day 1 Dinner
+☐ Day 2 Attendance
+☐ Day 2 Breakfast
 ```
 
-#### 6.3 Duplicate Prevention
+#### 6.4 Duplicate Prevention
 
 **Primary Method:** Database uniqueness constraint
 
 **Database Schema:**
 ```sql
-CREATE TABLE food_checkins (
-  id UUID PRIMARY KEY,
-  participant_id UUID REFERENCES participants(id),
-  meal_type ENUM('LUNCH_D1', 'DINNER_D1', 'BREAKFAST_D2'),
-  checked_in_by UUID REFERENCES participants(id), -- ops user
+CREATE TABLE checkin_records (
+  id TEXT PRIMARY KEY,
+  checkin_type_id TEXT REFERENCES checkin_types(id),
+  participant_id TEXT REFERENCES users(id),
+  checked_in_by TEXT REFERENCES users(id),
   checked_in_at TIMESTAMP,
-  UNIQUE(participant_id, meal_type) -- Prevents duplicates
+  UNIQUE(checkin_type_id, participant_id)
 );
 ```
 
 **Concurrent Scan Protection:**
 - Transaction isolation ensures atomic operations
-- Row-level locking prevents race conditions
+- Unique constraint prevents race conditions
 - If two ops scan simultaneously, second scan fails gracefully
 
 **User Experience:**
@@ -880,31 +910,55 @@ CREATE TABLE food_checkins (
 └─────────────────────────────────────┘
 ```
 
-**B. Food Check-in Mode**
+**B. Check-in Guest Mode**
 ```
 ┌─────────────────────────────────────┐
-│ 🍽️ Food Check-in                    │
+│ ✓ Check-in Guest                    │
 ├─────────────────────────────────────┤
-│ Select Meal:                        │
-│ ( ) Lunch - Dec 6, 12:00 PM         │
-│ (•) Dinner - Dec 6, 6:00 PM         │
-│ ( ) Breakfast - Dec 7, 9:00 AM      │
+│ Select Check-in Type:              │
+│ (•) Day 1 Attendance                │
+│ ( ) Day 1 Lunch                    │
+│ ( ) Day 1 Dinner                   │
+│ ( ) Day 2 Attendance                │
+│ ( ) Day 2 Breakfast                │
 │                                     │
 │   [Camera View - QR Scanner]        │
 │                                     │
 ├─────────────────────────────────────┤
-│ ✓ 234 claimed dinner so far         │
+│ ✓ 234 checked in for Day 1 Lunch  │
 ├─────────────────────────────────────┤
 │ Recent Scans:                       │
-│ • John Doe ✓ Dinner - 6:45 PM      │
-│ • Sarah Lee ✓ Dinner - 6:43 PM     │
-│ • Mike Chen ⚠️ Already claimed      │
-│ • Alex Wong ✓ Dinner - 6:40 PM     │
+│ • John Doe ✓ Day 1 Lunch - 12:15 PM│
+│ • Sarah Lee ✓ Day 1 Lunch - 12:13 PM│
+│ • Mike Chen ⚠️ Already checked in   │
+│ • Alex Wong ✓ Day 1 Lunch - 12:10 PM│
+└─────────────────────────────────────┘
+```
+
+**C. Check Guest Status Mode**
+```
+┌─────────────────────────────────────┐
+│ 📋 Check Guest Status                │
+├─────────────────────────────────────┤
+│   [Camera View - QR Scanner]        │
+│                                     │
+│   Point camera at participant's     │
+│   QR code                           │
+│                                     │
+├─────────────────────────────────────┤
+│ John Doe                            │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│ ✓ Day 1 Attendance - 9:15 AM       │
+│ ✓ Day 1 Lunch - 12:15 PM           │
+│ ☐ Day 1 Dinner                     │
+│ ☐ Day 2 Attendance                  │
+│ ☐ Day 2 Breakfast                   │
 └─────────────────────────────────────┘
 ```
 
 **Features:**
-- Mode toggle (check-in / food)
+- Check-in type selector (admin-configurable)
+- Check Guest Status mode (view all statuses)
 - Large scan result display (success/error)
 - Real-time counters
 - Recent activity feed (last 10 scans)
@@ -935,7 +989,7 @@ CREATE TABLE food_checkins (
 │                                                     │
 │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │
 │ │ 847 / 1000  │ │ 645 / 847   │ │ 234 / 847   │   │
-│ │ Checked In  │ │ Lunch Claims│ │ Dinner Claims│  │
+│ │ Checked In  │ │ Day 1 Lunch │ │ Day 1 Dinner│  │
 │ └─────────────┘ └─────────────┘ └─────────────┘   │
 │                                                     │
 │ ┌─────────────────────────────────────────────┐   │
@@ -1093,6 +1147,7 @@ CREATE TABLE food_checkins (
 
 **VIP Check-in Action:**
 - Admin clicks "Check In" button next to VIP name
+- System creates checkin_record for "Day 1 Attendance"
 - System updates status to checked_in
 - System sends VIP email with QR code image
 - No codes assigned (VIPs don't receive credits)
@@ -1298,19 +1353,19 @@ team_members:
 
 **A. Dashboard Analytics**
 - Check-in rate over time (line chart)
-- Food claim rates per meal (bar chart)
+- Check-in rates per type (bar chart)
 - Code redemption rates per credit type (pie chart)
 - Participant status breakdown (registered vs checked-in)
 
 **B. Export Functionality**
 - Export participant list (CSV)
 - Export check-in log (CSV with timestamps)
-- Export food check-in log (CSV)
+- Export check-in log (CSV)
 - Export code assignment report (who got which codes)
 
 **C. Real-time Monitoring**
 - Live check-in counter (updates every 5 seconds)
-- Live food claim counter per meal
+- Live check-in counter per type
 - Alert if code pool running low (< 10% remaining)
 
 **D. Audit Logs**
@@ -1329,7 +1384,7 @@ team_members:
 - Search participant by name or email
 - View participant details (status, check-in time, codes assigned)
 - Manual check-in button (if QR scan fails)
-- Manual food check-in button (if QR scan fails)
+- Manual check-in button (if QR scan fails)
 
 **B. Ops Activity Log**
 - View own scan history
@@ -1465,7 +1520,7 @@ team_members:
 
 **A. Event Configuration**
 - Create multiple events in one platform
-- Per-event settings (dates, meal types, credit types)
+- Per-event settings (dates, check-in types, credit types)
 - Event cloning (copy settings from previous event)
 
 **B. Historical Data**
@@ -1501,7 +1556,7 @@ team_members:
 
 **D. Webhook System**
 - Custom webhooks for external integrations
-- Trigger webhooks on events (check-in, food claim, etc.)
+- Trigger webhooks on events (check-in, code assignment, etc.)
 - Webhook logs and retry logic
 
 ---
@@ -1555,8 +1610,10 @@ This section documents step-by-step user journeys for each major interaction wit
 **Key Steps:**
 - Participant arrives at registration desk
 - Opens dashboard and shows QR code
+- Ops selects "Day 1 Attendance" check-in type
 - Ops scans QR code
 - System validates QR and participant status
+- System creates checkin_record for "Day 1 Attendance"
 - System updates status to checked_in
 - System assigns codes from pool (first-come-first-serve)
 - System sends check-in confirmation email with all codes
@@ -1566,39 +1623,38 @@ This section documents step-by-step user journeys for each major interaction wit
 
 ---
 
-### 6.4 Food Check-in Flow
+### 6.4 Check-in Guest Flow (Detailed)
 
-**Description:** Process for participants claiming meals at food stations throughout the event, with duplicate prevention for each meal type.
+**Description:** Process for ops to check in participants for a specific check-in type (e.g., Day 1 Lunch, Day 1 Dinner).
 
 **Key Steps:**
-- Participant goes to food station
-- Shows QR code (from dashboard or email)
-- Ops selects meal type (LUNCH_D1/DINNER_D1/BREAKFAST_D2)
+- Ops selects check-in type from list (e.g., "Day 1 Lunch")
+- Participant shows QR code (from dashboard or email)
 - Ops scans QR code
-- System validates participant is checked in
-- System checks if meal already claimed
-- System records food check-in or shows duplicate error
+- System validates participant exists
+- System checks if already checked in for this type
+- System records check-in or shows duplicate error
 - Ops confirms success/error to participant
 
-**Success Criteria:** Food claim processed quickly, no duplicates allowed, VIP badge shown when applicable
+**Success Criteria:** Check-in processed quickly, no duplicates allowed, VIP badge shown when applicable
 
 ---
 
 ### 6.5 VIP Complete Flow
 
-**Description:** End-to-end workflow for VIP guests from admin adding them, checking them in on event day, to using QR code at food stations.
+**Description:** End-to-end workflow for VIP guests from admin adding them, checking them in on event day, to using QR code for check-ins.
 
 **Key Steps:**
 - Admin adds VIP manually (name + email)
 - System generates permanent QR code
 - On event day, VIP arrives at registration
-- Admin manually checks in VIP
+- Admin manually checks in VIP (Day 1 Attendance)
 - System sends VIP email with QR code image
-- VIP shows QR from email at food stations
+- VIP shows QR from email at check-in stations
 - Ops scans and sees VIP badge
-- VIP claims meals without receiving credits
+- VIP completes check-ins (attendance, meals) without receiving credits
 
-**Success Criteria:** VIP can claim all meals, no platform login required, email QR works correctly
+**Success Criteria:** VIP can complete all check-ins, no platform login required, email QR works correctly
 
 ---
 
@@ -1650,11 +1706,11 @@ This section defines the database schema for all entities in the system using **
 │         │ participant_id                                                    │
 │         │ checked_in_by                                                     │
 │         ▼                                                                   │
-│  ┌─────────────────┐                                                        │
-│  │  food_checkins  │                                                        │
-│  │                 │                                                        │
-│  │ UNIQUE(participant_id, meal_type)                                        │
-│  └─────────────────┘                                                        │
+│  ┌─────────────────┐         ┌─────────────────┐                           │
+│  │ checkin_types   │────────<│ checkin_records │                           │
+│  │                 │         │                 │                           │
+│  │ (admin-defined) │         │ UNIQUE(type_id, participant_id)             │
+│  └─────────────────┘         └─────────────────┘                           │
 │                                                                             │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
 │  │   sessions      │  │    accounts     │  │  verifications  │             │
@@ -1844,7 +1900,7 @@ export const VerificationsTable = pgTable('verifications', {
 **Schema Definition:**
 
 ```typescript
-// packages/core/src/hackathon.server/schemas/credit-types.sql.ts
+// packages/core/src/business.server/events/schemas/credit-types.sql.ts
 import { boolean, index, integer, pgTable, text } from 'drizzle-orm/pg-core';
 import { cuidId, timestamps } from '~/drizzle.server/types';
 
@@ -1878,7 +1934,7 @@ export type NewCreditType = typeof CreditTypesTable.$inferInsert;
 | webInstructions | text | No | - | Detailed HTML/Markdown instructions for dashboard |
 | displayOrder | integer | No | 0 | Sort order in participant dashboard |
 | iconUrl | text | Yes | null | URL to sponsor logo/icon |
-| isActive | boolean | No | true | Whether codes of this type are assigned during check-in |
+| isActive | boolean | No | true | Whether codes of this type are assigned during registration check-in |
 
 **Example Data:**
 
@@ -1903,7 +1959,7 @@ INSERT INTO credit_types (id, name, display_name, email_instructions, web_instru
 **Schema Definition:**
 
 ```typescript
-// packages/core/src/hackathon.server/schemas/codes.sql.ts
+// packages/core/src/business.server/events/schemas/codes.sql.ts
 import { index, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { cuidId, timestamps } from '~/drizzle.server/types';
 import { CreditTypesTable } from './credit-types.sql';
@@ -1946,13 +2002,13 @@ export type NewCode = typeof CodesTable.$inferInsert;
 | codeValue | text | No | - | The actual redemption code string |
 | redeemUrl | text | No | - | URL where participant redeems code |
 | assignedTo | text | Yes | null | FK to users (participant who received code) |
-| assignedAt | timestamp | Yes | null | When code was assigned during check-in |
+| assignedAt | timestamp | Yes | null | When code was assigned during registration check-in |
 | redeemedAt | timestamp | Yes | null | When participant marked as redeemed |
 | status | enum | No | 'unassigned' | Lifecycle: unassigned → available → redeemed |
 
 **Status Lifecycle:**
 1. `unassigned` - Imported but not assigned to anyone
-2. `available` - Assigned to participant during check-in, not yet redeemed
+2. `available` - Assigned to participant during registration check-in, not yet redeemed
 3. `redeemed` - Participant self-reported as redeemed
 
 **Code Assignment Query (with row-level locking):**
@@ -1995,41 +2051,34 @@ const assignCodeToParticipant = async (
 
 ---
 
-### 7.6 Food Check-ins Table
+### 7.6 Check-in Types Table
 
-**Description:** Records of meal claims by participants. Prevents duplicate claims per meal type through unique constraint.
+**Description:** Admin-configurable check-in categories (attendance, meals, etc.).
 
 **Schema Definition:**
 
 ```typescript
-// packages/core/src/hackathon.server/schemas/food-checkins.sql.ts
-import { index, pgEnum, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
-import { cuidId } from '~/drizzle.server/types';
-import { UsersTable } from '~/auth/schema';
+// packages/core/src/business.server/events/schemas/checkin-types.sql.ts
+import { boolean, index, integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
+import { cuidId, timestamps } from '~/drizzle.server/types';
 
-export const mealTypeEnum = pgEnum('meal_type', ['LUNCH_D1', 'DINNER_D1', 'BREAKFAST_D2']);
+export const checkinTypeEnum = pgEnum('checkin_type', ['attendance', 'meal']);
 
-export const FoodCheckinsTable = pgTable('food_checkins', {
+export const CheckinTypesTable = pgTable('checkin_types', {
   id: cuidId('id'),
-  participantId: text('participant_id')
-    .notNull()
-    .references(() => UsersTable.id, { onDelete: 'cascade' }),
-  mealType: mealTypeEnum('meal_type').notNull(),
-  checkedInBy: text('checked_in_by')
-    .notNull()
-    .references(() => UsersTable.id, { onDelete: 'restrict' }), // Ops user
-  checkedInAt: timestamp('checked_in_at').notNull().defaultNow(),
+  name: text('name').notNull().unique(),
+  type: checkinTypeEnum('type').notNull(),
+  description: text('description'),
+  displayOrder: integer('display_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  ...timestamps,
 }, (table) => [
-  // Prevents duplicate meal claims - critical constraint
-  unique('food_checkins_unique').on(table.participantId, table.mealType),
-  // For querying participant's meal history
-  index('food_checkins_participant_idx').on(table.participantId),
-  // For meal session statistics
-  index('food_checkins_meal_type_idx').on(table.mealType),
+  index('checkin_types_display_order_idx').on(table.displayOrder),
+  index('checkin_types_is_active_idx').on(table.isActive),
 ]);
 
-export type FoodCheckin = typeof FoodCheckinsTable.$inferSelect;
-export type NewFoodCheckin = typeof FoodCheckinsTable.$inferInsert;
+export type CheckinType = typeof CheckinTypesTable.$inferSelect;
+export type NewCheckinType = typeof CheckinTypesTable.$inferInsert;
 ```
 
 **Field Details:**
@@ -2037,44 +2086,85 @@ export type NewFoodCheckin = typeof FoodCheckinsTable.$inferInsert;
 | Field | Type | Nullable | Default | Description |
 |-------|------|----------|---------|-------------|
 | id | text (cuid) | No | auto | Primary key |
-| participantId | text | No | - | FK to users (participant claiming meal) |
-| mealType | enum | No | - | LUNCH_D1, DINNER_D1, or BREAKFAST_D2 |
+| name | text | No | - | Unique name (e.g., "Day 1 Lunch") |
+| type | enum | No | - | 'attendance' or 'meal' |
+| description | text | Yes | null | Instructions shown to ops |
+| displayOrder | int | No | 0 | Order in ops UI |
+| isActive | boolean | No | true | Can disable without deleting |
+
+### 7.7 Check-in Records Table
+
+**Description:** Records of participant check-ins. Prevents duplicates per check-in type.
+
+**Schema Definition:**
+
+```typescript
+// packages/core/src/business.server/events/schemas/checkin-records.sql.ts
+import { index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { cuidId } from '~/drizzle.server/types';
+import { UsersTable } from '~/auth/schema';
+import { CheckinTypesTable } from './checkin-types.sql';
+
+export const CheckinRecordsTable = pgTable('checkin_records', {
+  id: cuidId('id'),
+  checkinTypeId: text('checkin_type_id')
+    .notNull()
+    .references(() => CheckinTypesTable.id, { onDelete: 'restrict' }),
+  participantId: text('participant_id')
+    .notNull()
+    .references(() => UsersTable.id, { onDelete: 'cascade' }),
+  checkedInBy: text('checked_in_by')
+    .notNull()
+    .references(() => UsersTable.id, { onDelete: 'restrict' }),
+  checkedInAt: timestamp('checked_in_at').notNull().defaultNow(),
+}, (table) => [
+  unique('checkin_records_type_participant_unq').on(table.checkinTypeId, table.participantId),
+  index('checkin_records_participant_idx').on(table.participantId),
+  index('checkin_records_checked_in_at_idx').on(table.checkedInAt),
+]);
+
+export type CheckinRecord = typeof CheckinRecordsTable.$inferSelect;
+export type NewCheckinRecord = typeof CheckinRecordsTable.$inferInsert;
+```
+
+**Field Details:**
+
+| Field | Type | Nullable | Default | Description |
+|-------|------|----------|---------|-------------|
+| id | text (cuid) | No | auto | Primary key |
+| checkinTypeId | text | No | - | FK to checkin_types |
+| participantId | text | No | - | FK to users (participant) |
 | checkedInBy | text | No | - | FK to users (ops who scanned) |
-| checkedInAt | timestamp | No | now() | When meal was claimed |
-
-**Meal Types:**
-
-| Enum Value | Date | Time | Description |
-|------------|------|------|-------------|
-| LUNCH_D1 | Dec 6 | 12:00 PM | Day 1 Lunch |
-| DINNER_D1 | Dec 6 | 6:00 PM | Day 1 Dinner |
-| BREAKFAST_D2 | Dec 7 | 9:00 AM | Day 2 Breakfast |
+| checkedInAt | timestamp | No | now() | When checked in |
 
 **Duplicate Prevention:**
 
-The unique constraint `(participant_id, meal_type)` prevents duplicate claims at the database level. If two ops scan simultaneously:
+The unique constraint `(checkin_type_id, participant_id)` prevents duplicate check-ins:
 
 ```typescript
-// Concurrent scan protection
-const claimMeal = async (participantId: string, mealType: MealType, opsUserId: string) => {
+const processCheckin = async (
+  checkinTypeId: string, 
+  participantId: string, 
+  opsUserId: string
+) => {
   try {
-    await db.insert(FoodCheckinsTable).values({
+    await db.insert(CheckinRecordsTable).values({
+      checkinTypeId,
       participantId,
-      mealType,
       checkedInBy: opsUserId,
     });
     return { success: true };
   } catch (error) {
     if (error.code === '23505') { // PostgreSQL unique violation
-      const existing = await db.query.FoodCheckinsTable.findFirst({
+      const existing = await db.query.CheckinRecordsTable.findFirst({
         where: and(
-          eq(FoodCheckinsTable.participantId, participantId),
-          eq(FoodCheckinsTable.mealType, mealType)
+          eq(CheckinRecordsTable.checkinTypeId, checkinTypeId),
+          eq(CheckinRecordsTable.participantId, participantId)
         ),
       });
       return { 
         success: false, 
-        error: `Already claimed at ${existing?.checkedInAt}` 
+        error: `Already checked in at ${existing?.checkedInAt}` 
       };
     }
     throw error;
@@ -2084,26 +2174,23 @@ const claimMeal = async (participantId: string, mealType: MealType, opsUserId: s
 
 ---
 
-### 7.7 Relations Definition
+### 7.8 Relations Definition
 
 **Description:** Drizzle ORM relation definitions for type-safe queries with joins.
 
 ```typescript
-// packages/core/src/hackathon.server/schemas/relations.ts
+// packages/core/src/business.server/events/schemas/schema.ts
 import { relations } from 'drizzle-orm';
 import { UsersTable } from '~/auth/schema';
 import { CreditTypesTable } from './credit-types.sql';
 import { CodesTable } from './codes.sql';
-import { FoodCheckinsTable } from './food-checkins.sql';
+import { CheckinTypesTable } from './checkin-types.sql';
+import { CheckinRecordsTable } from './checkin-records.sql';
 
 export const usersRelations = relations(UsersTable, ({ many, one }) => ({
-  // Codes assigned to this participant
   assignedCodes: many(CodesTable, { relationName: 'assignedCodes' }),
-  // Food claims by this participant
-  foodCheckins: many(FoodCheckinsTable, { relationName: 'participantCheckins' }),
-  // Food check-ins processed by this ops user
-  processedFoodCheckins: many(FoodCheckinsTable, { relationName: 'opsCheckins' }),
-  // Who checked in this participant
+  checkinRecords: many(CheckinRecordsTable, { relationName: 'participantCheckins' }),
+  processedCheckins: many(CheckinRecordsTable, { relationName: 'opsCheckins' }),
   checkedInByUser: one(UsersTable, {
     fields: [UsersTable.checkedInBy],
     references: [UsersTable.id],
@@ -2127,14 +2214,22 @@ export const codesRelations = relations(CodesTable, ({ one }) => ({
   }),
 }));
 
-export const foodCheckinsRelations = relations(FoodCheckinsTable, ({ one }) => ({
+export const checkinTypesRelations = relations(CheckinTypesTable, ({ many }) => ({
+  checkinRecords: many(CheckinRecordsTable),
+}));
+
+export const checkinRecordsRelations = relations(CheckinRecordsTable, ({ one }) => ({
+  checkinType: one(CheckinTypesTable, {
+    fields: [CheckinRecordsTable.checkinTypeId],
+    references: [CheckinTypesTable.id],
+  }),
   participant: one(UsersTable, {
-    fields: [FoodCheckinsTable.participantId],
+    fields: [CheckinRecordsTable.participantId],
     references: [UsersTable.id],
     relationName: 'participantCheckins',
   }),
   processedBy: one(UsersTable, {
-    fields: [FoodCheckinsTable.checkedInBy],
+    fields: [CheckinRecordsTable.checkedInBy],
     references: [UsersTable.id],
     relationName: 'opsCheckins',
   }),
@@ -2143,26 +2238,27 @@ export const foodCheckinsRelations = relations(FoodCheckinsTable, ({ one }) => (
 
 ---
 
-### 7.8 Schema Export
+### 7.9 Schema Export
 
-**Description:** Central export file for all hackathon schemas.
+**Description:** Central export file for all event schemas.
 
 ```typescript
-// packages/core/src/hackathon.server/schemas/index.ts
+// packages/core/src/business.server/events/schemas/schema.ts
 export { CreditTypesTable, type CreditType, type NewCreditType } from './credit-types.sql';
 export { CodesTable, codeStatusEnum, type Code, type NewCode } from './codes.sql';
-export { FoodCheckinsTable, mealTypeEnum, type FoodCheckin, type NewFoodCheckin } from './food-checkins.sql';
-export * from './relations';
+export { CheckinTypesTable, checkinTypeEnum, type CheckinType, type NewCheckinType } from './checkin-types.sql';
+export { CheckinRecordsTable, type CheckinRecord, type NewCheckinRecord } from './checkin-records.sql';
+// Relations also exported from this file
 ```
 
 ---
 
-### 7.9 QR Code Value Generation
+### 7.10 QR Code Value Generation
 
 **Description:** QR code values are generated once and stored in the user record. Uses HMAC-SHA256 for signature verification.
 
 ```typescript
-// packages/core/src/hackathon.server/qr-code.ts
+// packages/core/src/business.server/events/events.ts
 import { createHmac } from 'crypto';
 import { env } from '~/config/env';
 
@@ -2224,7 +2320,7 @@ const EnvSchema = z.object({
 
 ---
 
-### 7.10 Database Migration Strategy
+### 7.11 Database Migration Strategy
 
 **Description:** Migration approach for setting up the hackathon schema.
 
@@ -2238,7 +2334,7 @@ CREATE TYPE user_role AS ENUM ('participant', 'ops', 'admin');
 CREATE TYPE participant_type AS ENUM ('regular', 'vip');
 CREATE TYPE participant_status AS ENUM ('registered', 'checked_in');
 CREATE TYPE code_status AS ENUM ('unassigned', 'available', 'redeemed');
-CREATE TYPE meal_type AS ENUM ('LUNCH_D1', 'DINNER_D1', 'BREAKFAST_D2');
+CREATE TYPE checkin_type AS ENUM ('attendance', 'meal');
 
 -- Extend users table
 ALTER TABLE users 
@@ -2289,18 +2385,33 @@ CREATE INDEX codes_assignment_idx ON codes(credit_type_id, status);
 CREATE INDEX codes_assigned_to_idx ON codes(assigned_to);
 CREATE UNIQUE INDEX codes_unique_per_type_idx ON codes(credit_type_id, code_value);
 
--- Food check-ins table
-CREATE TABLE food_checkins (
+-- Check-in types table (admin-configurable)
+CREATE TABLE checkin_types (
   id TEXT PRIMARY KEY,
-  participant_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  meal_type meal_type NOT NULL,
-  checked_in_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  checked_in_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  UNIQUE(participant_id, meal_type)
+  name TEXT NOT NULL UNIQUE,
+  type checkin_type NOT NULL,
+  description TEXT,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX food_checkins_participant_idx ON food_checkins(participant_id);
-CREATE INDEX food_checkins_meal_type_idx ON food_checkins(meal_type);
+CREATE INDEX checkin_types_display_order_idx ON checkin_types(display_order);
+CREATE INDEX checkin_types_is_active_idx ON checkin_types(is_active);
+
+-- Check-in records table
+CREATE TABLE checkin_records (
+  id TEXT PRIMARY KEY,
+  checkin_type_id TEXT NOT NULL REFERENCES checkin_types(id) ON DELETE RESTRICT,
+  participant_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  checked_in_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  checked_in_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE(checkin_type_id, participant_id)
+);
+
+CREATE INDEX checkin_records_participant_idx ON checkin_records(participant_id);
+CREATE INDEX checkin_records_checked_in_at_idx ON checkin_records(checked_in_at);
 ```
 
 **Generate Migration:**
@@ -2312,7 +2423,7 @@ pnpm db:migrate   # Apply migration to database
 
 ---
 
-### 7.11 Phase 2 Tables (Reference Only)
+### 7.12 Phase 2 Tables (Reference Only)
 
 These tables are documented for future implementation but NOT included in Phase 1.
 
@@ -2406,8 +2517,8 @@ This section provides detailed design specifications, wireframes, responsive beh
 **Topics Covered:**
 - Camera viewfinder design
 - Scan result display (success/error)
-- Mode toggle design (check-in vs food)
-- Meal type selector
+- Check-in type selector design
+- Check Guest Status mode design
 - Real-time counters
 - Recent activity feed
 - Offline state indicator
@@ -2494,7 +2605,7 @@ This section documents all technology choices, architecture decisions, deploymen
 **API Structure:**
 - Server functions in `apps/web/src/apis/` for UI-triggered operations
 - Server routes for external integrations (auth callbacks, webhooks)
-- Business logic in `packages/core/src/hackathon.server/`
+- Business logic in `packages/core/src/business.server/events/`
 
 ---
 
@@ -2517,7 +2628,7 @@ pnpm db:push      # Quick schema sync (development only)
 **Index Strategy:**
 - `codes(credit_type_id, status)` - First-come-first-serve code assignment
 - `codes(assigned_to)` - Participant's assigned codes lookup
-- `food_checkins(participant_id, meal_type)` - Unique constraint + lookup
+- `checkin_records(checkin_type_id, participant_id)` - Unique constraint + lookup
 - `users(email, luma_id, status, role)` - Various lookup patterns
 
 ---
@@ -2603,7 +2714,7 @@ const requireRole = (allowedRoles: UserRole[]) => {
 1. Ops scans QR → decode base64url → parse JSON
 2. Verify HMAC signature matches
 3. Lookup participant by `participantId`
-4. Process check-in or food claim
+4. Process check-in
 
 ---
 
@@ -2749,7 +2860,7 @@ This section defines measurable goals, performance benchmarks, and success metri
 
 **Targets:**
 - 95% successful check-ins (no failures)
-- < 1% duplicate food claims (system should prevent all)
+- < 1% duplicate check-ins (system should prevent all)
 - < 5% failed QR scans (ops retry rate)
 - Zero participants locked out (authentication failures)
 - < 10 support tickets during event
@@ -2765,7 +2876,7 @@ This section defines measurable goals, performance benchmarks, and success metri
 - 1,000 participants imported successfully
 - 95% check-in rate (950+ participants checked in)
 - All sponsor credits distributed (code assignment)
-- 80%+ food claim rate per meal
+- 80%+ check-in rate per type
 - Zero security incidents
 - Complete audit trail of all transactions
 

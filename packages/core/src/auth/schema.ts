@@ -1,21 +1,36 @@
 import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
-export const UsersTable = pgTable('users', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').default(false).notNull(),
-  image: text('image'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-  role: text('role'),
-  banned: boolean('banned').default(false),
-  banReason: text('ban_reason'),
-  banExpires: timestamp('ban_expires'),
-});
+export const UsersTable = pgTable(
+  'users',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    email: text('email').notNull().unique(),
+    emailVerified: boolean('email_verified').default(false).notNull(),
+    image: text('image'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    role: text('role').default('participant'),
+    banned: boolean('banned').default(false),
+    banReason: text('ban_reason'),
+    banExpires: timestamp('ban_expires'),
+    lumaId: text('luma_id'),
+    participantType: text('participant_type').default('regular'),
+    status: text('status').default('registered'),
+    checkedInAt: timestamp('checked_in_at'),
+    checkedInBy: text('checked_in_by'),
+    qrCodeValue: text('qr_code_value'),
+  },
+  (table) => [
+    index('users_luma_id_idx').on(table.lumaId),
+    index('users_status_idx').on(table.status),
+    index('users_role_idx').on(table.role),
+    index('users_participant_type_idx').on(table.participantType),
+  ]
+);
 
 export const SessionsTable = pgTable(
   'sessions',

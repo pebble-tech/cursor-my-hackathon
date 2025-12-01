@@ -14,6 +14,7 @@
     "db:push": "pnpm --filter '@base/core' db:push",
     "db:generate": "pnpm --filter '@base/core' db:generate",
     "db:migrate": "pnpm --filter '@base/core' db:migrate",
+    "db:seed": "pnpm --filter '@base/core' db:seed",
     "db:studio": "pnpm --filter '@base/core' db:studio",
     "lint": "oxlint",
     "typecheck": "tsc --build --emitDeclarationOnly",
