@@ -1,0 +1,15 @@
+node_modules
+dist
+.output
+.netlify
+.env*
+!.env.example
+.DS_Store
+
+.tanstack
+.nitro
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@base/core/*": ["packages/core/src/*"],
+      "@base/ui/*": ["packages/ui/src/*"],
+      "~/*": ["${configDir}/src/*"]
+    },
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "target": "ES2022",
+    "composite": true
+  }
+}
+

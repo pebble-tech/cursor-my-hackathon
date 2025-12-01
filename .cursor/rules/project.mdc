@@ -1,0 +1,97 @@
+---
+alwaysApply: true
+---
+
+# Base Template - Project Rules
+
+This is a monorepo project using PNPM. Core frameworks and packages:
+- React 19
+- TanStack Start
+- TanStack Query
+- Drizzle ORM
+- Tailwind v4
+- Shadcn UI
+- Better Auth
+- AI SDK v5
+
+## Project Structure
+
+**Directories:**
+- `apps/web` = Main web application using TanStack Start
+- `packages/core` = Backend business logic and shared util functions
+- `packages/ui` = Shared UI components with Shadcn
+
+## Development Guidelines
+
+### Adding Components
+- Use `pnpm ui:add` in the root path when adding new base components from Shadcn
+- Create custom components in `packages/ui/src/components/`
+
+### AI Integration
+- Use AI Gateway (https://vercel.com/docs/ai-gateway) from Vercel to call multiple LLM providers
+- Always read documentation for AI SDK v5, AI Gateway, and TanStack Start
+- Import AI functions from `@base/core/providers/ai`
+
+### Data Fetching
+- Use TanStack Query when interacting with server functions for all backend operations
+- Create server functions in `apps/web/src/apis/` for handling backend operations
+- Put all business logic server code in `packages/core/src/`
+
+### Database
+- Always use Drizzle to generate migration files
+- Use `pnpm db:generate` to create migrations
+- Use `pnpm db:migrate` to apply migrations
+- Use `pnpm db:push` for quick schema changes in development
+
+**ID Conventions:**
+- Use `cuidId('id')` for user-facing resources (non-sequential, secure)
+- Use `bigSerialId('id')` for internal tables (sequential, efficient)
+- Use `...timestamps` for automatic createdAt/updatedAt fields
+
+### Code Organization
+- Always use `~/*` path alias when importing files within the same package
+- Use `@base/core/*` for core package imports
+- Use `@base/ui/*` for UI package imports
+- Always use `logging.ts` util for application logs, avoid using console.log directly unless for temporary debugging
+
+### TypeScript & Quality
+- Follow TypeScript best practices strictly
+- No `any` types - use proper typing
+- Use `pnpm typecheck` and `pnpm lint` at root level to verify code quality
+
+## TanStack Start: Server Functions vs Server Routes
+
+### Server Functions (preferred for app-internal operations)
+- Use for RPC-style calls from components, hooks, loaders (no stable public URL)
+- Access request context, set cookies/headers, do DB/external calls
+- Ideal for: UI-triggered operations, form submissions, data fetching
+- Security: internal only; avoid exposing outside the app
+- Docs: https://tanstack.com/start/latest/docs/framework/react/server-functions
+
+### Server Routes (use for external callers/integrations)
+- Use when a stable public URL is required (cron, webhooks, worker endpoints)
+- Ideal for: Auth callbacks, webhook endpoints, cron job handlers
+- Security: require authentication/rate limits; suitable for external triggering
+- Docs: https://tanstack.com/start/latest/docs/framework/react/server-routes
+
+**Rule of thumb:** UI-triggered features → Server Functions. Scheduler/webhook/integration endpoints → Server Routes.
+
+## Documentation
+
+### Long-term Documentation (docs/)
+
+Keep it simple and focused:
+- `architecture.md` - System design, patterns, tech decisions
+- `deployment.md` - Production deployment guide
+- Update only when behavior/contracts change
+
+### Task Documentation (docs/workspace/tasks/)
+
+- Create a new task directory (NNN-task-name)
+- Document plans, notes or other relevant docs in the task directory
+- Use notes for quick thoughts and discoveries
+
+**Keep it light** - Don't over-document. Focus on why, not what (code shows what).
+
+## Notes
+- business.server/posts is a reference business domain used for showcasing how it works in our current repo

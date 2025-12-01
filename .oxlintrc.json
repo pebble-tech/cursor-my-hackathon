@@ -1,0 +1,10 @@
+{
+  "plugins": ["eslint", "unicorn", "oxc", "typescript", "react"],
+  "rules": {
+    "eqeqeq": "error",
+    "unicorn/no-anonymous-default-export": "error",
+    "no-console": "error",
+    "react/exhaustive-deps": "error",
+    "react/rules-of-hooks": "error"
+  }
+}
