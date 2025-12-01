@@ -50,22 +50,21 @@ The Cursor x Anthropic MY Hackathon Platform is a comprehensive event management
 │  - Participant Dashboard (Mobile-First)                 │
 │  - Ops Scanner Dashboard (Mobile/Tablet)                │
 │  - Admin Dashboard (Desktop)                            │
-│  Tech: Tanstack Start                                   │
+│  Tech: TanStack Start + React 19 + Tailwind v4          │
 └─────────────────┬───────────────────────────────────────┘
                   │
 ┌─────────────────▼───────────────────────────────────────┐
 │                   API Layer                             │
-│  - Authentication (Magic Links)                         │
-│  - QR Code Generation & Validation                      │
-│  - Check-in Processing                                  │
-│  - Code Assignment Logic                                │
-│  Tech: Hono                                             │
+│  - Server Functions (TanStack Start)                    │
+│  - Server Routes (webhooks, auth callbacks)             │
+│  - TanStack Query (data fetching)                       │
 └─────────────────┬───────────────────────────────────────┘
                   │
 ┌─────────────────▼───────────────────────────────────────┐
 │              Backend & Database                         │
-│  - Convex (Backend + Real-time DB)                      │
-│  - Better Auth (Authentication)                         │
+│  - PostgreSQL (Database)                                │
+│  - Drizzle ORM (Type-safe queries)                      │
+│  - Better Auth + Magic Link Plugin (Authentication)     │
 │  - Resend (Email Delivery)                              │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -74,10 +73,12 @@ The Cursor x Anthropic MY Hackathon Platform is a comprehensive event management
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| Frontend Framework | Tanstack Start | React-based framework for web app |
-| Backend & Database | Convex | Serverless backend with real-time database |
-| API Layer | Hono | Lightweight API framework |
-| Authentication | Better Auth | Magic link authentication |
+| Frontend Framework | TanStack Start | React 19 full-stack framework |
+| Styling | Tailwind v4 + Shadcn UI | Component library and styling |
+| Data Fetching | TanStack Query | Server state management |
+| Database | PostgreSQL | Relational database with row-level locking |
+| ORM | Drizzle ORM | Type-safe database queries |
+| Authentication | Better Auth + Magic Link Plugin | Passwordless authentication |
 | Email Service | Resend | Transactional emails |
 | QR Generation | qrcode library | QR code generation |
 | QR Scanning | html5-qrcode | Camera-based QR scanning |
@@ -1620,97 +1621,748 @@ This section documents step-by-step user journeys for each major interaction wit
 
 ## 7. Data Models
 
-This section defines the database schema for all entities in the system, including tables, columns, data types, relationships, and constraints.
+This section defines the database schema for all entities in the system using **Drizzle ORM with PostgreSQL**.
 
-### 7.1 Participant Table
+### 7.0 Technology Decision
 
-**Description:** Core table storing all participant, VIP, ops, and admin user records with authentication and status information.
+**Database Stack:** Drizzle ORM + PostgreSQL (not Convex as mentioned in architecture diagram)
 
-**Key Fields:** id, email, name, luma_id, role, participant_type, status, checked_in_at, qr_code_value
+**Rationale:**
+- Existing codebase already uses Drizzle ORM with PostgreSQL
+- Better Auth integrates seamlessly with Drizzle adapter
+- PostgreSQL supports row-level locking (`FOR UPDATE`) required for first-come-first-serve code assignment
+- Strong typing with TypeScript inference
 
-**Relationships:** One-to-many with codes (assigned codes), one-to-many with food_checkins
+### 7.1 Entity Relationship Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              DATA MODEL (Phase 1)                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────┐         ┌─────────────────┐         ┌─────────────────┐   │
+│  │   users     │────────<│     codes       │>────────│  credit_types   │   │
+│  │  (Better    │         │                 │         │                 │   │
+│  │   Auth +    │         │ assigned_to ────┘         │                 │   │
+│  │  extended)  │         │ credit_type_id ───────────┘                 │   │
+│  └──────┬──────┘         └─────────────────┘         └─────────────────┘   │
+│         │                                                                   │
+│         │ participant_id                                                    │
+│         │ checked_in_by                                                     │
+│         ▼                                                                   │
+│  ┌─────────────────┐                                                        │
+│  │  food_checkins  │                                                        │
+│  │                 │                                                        │
+│  │ UNIQUE(participant_id, meal_type)                                        │
+│  └─────────────────┘                                                        │
+│                                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
+│  │   sessions      │  │    accounts     │  │  verifications  │             │
+│  │  (Better Auth)  │  │  (Better Auth)  │  │  (Better Auth)  │             │
+│  │                 │  │                 │  │  (Magic Links)  │             │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 Users Table (Extended Better Auth)
+
+**Description:** Core table storing all participant, VIP, ops, and admin user records. Extends Better Auth's standard user table with hackathon-specific fields.
+
+**Strategy:** Extend Better Auth's `users` table rather than creating a separate `participants` table. This keeps authentication and participant data unified.
+
+**Schema Definition:**
+
+```typescript
+// packages/core/src/auth/schema.ts (extended)
+import { boolean, index, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+
+// Enums
+export const userRoleEnum = pgEnum('user_role', ['participant', 'ops', 'admin']);
+export const participantTypeEnum = pgEnum('participant_type', ['regular', 'vip']);
+export const participantStatusEnum = pgEnum('participant_status', ['registered', 'checked_in']);
+
+export const UsersTable = pgTable('users', {
+  // Better Auth standard fields
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('email_verified').default(false).notNull(),
+  image: text('image'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+  
+  // Better Auth optional fields
+  banned: boolean('banned').default(false),
+  banReason: text('ban_reason'),
+  banExpires: timestamp('ban_expires'),
+  
+  // Hackathon-specific fields (extensions)
+  lumaId: text('luma_id'),                                    // Luma event registration ID
+  role: userRoleEnum('role').default('participant').notNull(), // Permission level
+  participantType: participantTypeEnum('participant_type').default('regular').notNull(),
+  status: participantStatusEnum('status').default('registered').notNull(),
+  checkedInAt: timestamp('checked_in_at'),                    // When checked in at registration
+  checkedInBy: text('checked_in_by'),                         // Ops user who checked them in
+  qrCodeValue: text('qr_code_value'),                         // Permanent QR code payload
+}, (table) => [
+  index('users_email_idx').on(table.email),
+  index('users_luma_id_idx').on(table.lumaId),
+  index('users_status_idx').on(table.status),
+  index('users_role_idx').on(table.role),
+]);
+```
+
+**Field Details:**
+
+| Field | Type | Nullable | Default | Description |
+|-------|------|----------|---------|-------------|
+| id | text | No | - | CUID primary key |
+| name | text | No | - | Display name (from Luma or manual entry) |
+| email | text | No | - | Unique email address |
+| emailVerified | boolean | No | false | Better Auth field |
+| image | text | Yes | null | Profile image URL |
+| lumaId | text | Yes | null | Luma registration ID for deduplication |
+| role | enum | No | 'participant' | Permission level: participant, ops, admin |
+| participantType | enum | No | 'regular' | Type: regular (gets credits) or vip (no credits) |
+| status | enum | No | 'registered' | Lifecycle: registered → checked_in |
+| checkedInAt | timestamp | Yes | null | Timestamp of registration check-in |
+| checkedInBy | text | Yes | null | User ID of ops who processed check-in |
+| qrCodeValue | text | Yes | null | HMAC-signed permanent QR payload |
+| createdAt | timestamp | No | now() | Record creation time |
+| updatedAt | timestamp | No | now() | Last update time |
+
+**VIP Handling:**
+- VIPs have `participantType: 'vip'` and `role: 'participant'`
+- VIPs are created by admin with `status: 'registered'`
+- VIPs cannot request magic links (enforced at application level)
+- Admin manually checks in VIPs, which triggers QR email
 
 ---
 
-### 7.2 MagicLink Table
+### 7.3 Magic Link Authentication (Better Auth Plugin)
 
-**Description:** Temporary table for magic link authentication tokens with expiration tracking.
+**Description:** Magic link authentication is handled by Better Auth's built-in plugin, NOT a custom table. The plugin uses the existing `verifications` table.
 
-**Key Fields:** id, email, token, expires_at, used_at, created_at
+**Implementation:**
 
-**Relationships:** None (lookup table only)
+```typescript
+// packages/core/src/auth/auth.ts
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { magicLink } from 'better-auth/plugins';
+
+import { env } from '~/config/env';
+import { db } from '~/drizzle.server';
+import { sendMagicLinkEmail } from '~/email/magic-link';
+
+export const auth = betterAuth({
+  baseURL: env.APP_BASE_URL,
+  trustedOrigins: [env.APP_BASE_URL],
+  database: drizzleAdapter(db, {
+    provider: 'pg',
+    usePlural: true,
+  }),
+  session: {
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24,     // Refresh daily
+  },
+  plugins: [
+    magicLink({
+      sendMagicLink: async ({ email, token, url }, ctx) => {
+        // Validate user exists and is allowed to login
+        const user = await db.query.UsersTable.findFirst({
+          where: (users, { eq }) => eq(users.email, email),
+        });
+        
+        if (!user) {
+          throw new Error('Email not registered');
+        }
+        
+        if (user.participantType === 'vip') {
+          throw new Error('VIP accounts cannot login. Please contact organizers.');
+        }
+        
+        await sendMagicLinkEmail({
+          to: email,
+          name: user.name,
+          magicLinkUrl: url,
+        });
+      },
+      expiresIn: 60 * 60, // 1 hour
+      disableSignUp: true, // Only pre-imported users can login
+    }),
+  ],
+});
+```
+
+**Client-side Integration:**
+
+```typescript
+// apps/web/src/utils/auth-client.ts
+import { createAuthClient } from 'better-auth/client';
+import { magicLinkClient } from 'better-auth/client/plugins';
+
+export const authClient = createAuthClient({
+  baseURL: import.meta.env.VITE_APP_BASE_URL,
+  plugins: [
+    magicLinkClient(),
+  ],
+});
+
+// Usage in login form
+const handleLogin = async (email: string) => {
+  const { data, error } = await authClient.signIn.magicLink({
+    email,
+    callbackURL: '/dashboard',
+  });
+};
+```
+
+**Verifications Table (Better Auth managed):**
+
+The `verifications` table is already created by Better Auth and used for magic link tokens:
+
+```typescript
+// Already exists in schema - managed by Better Auth
+export const VerificationsTable = pgTable('verifications', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),  // email address
+  value: text('value').notNull(),             // token hash
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().$onUpdate(() => new Date()).notNull(),
+});
+```
 
 ---
 
-### 7.3 CreditType Table
+### 7.4 Credit Types Table
 
 **Description:** Defines categories of sponsor credits with display information and redemption instructions.
 
-**Key Fields:** id, name, display_name, email_instructions, web_instructions, display_order, icon_url, is_active
+**Schema Definition:**
 
-**Relationships:** One-to-many with codes
+```typescript
+// packages/core/src/hackathon.server/schemas/credit-types.sql.ts
+import { boolean, index, integer, pgTable, text } from 'drizzle-orm/pg-core';
+import { cuidId, timestamps } from '~/drizzle.server/types';
 
----
+export const CreditTypesTable = pgTable('credit_types', {
+  id: cuidId('id'),
+  name: text('name').notNull().unique(),           // Internal key: 'cursor', 'anthropic'
+  displayName: text('display_name').notNull(),     // UI display: 'Cursor Pro Credits - 50 credits'
+  emailInstructions: text('email_instructions').notNull(), // Concise text for email
+  webInstructions: text('web_instructions').notNull(),     // Detailed HTML/Markdown for dashboard
+  displayOrder: integer('display_order').notNull().default(0),
+  iconUrl: text('icon_url'),                       // Sponsor logo URL
+  isActive: boolean('is_active').notNull().default(true),
+  ...timestamps,
+}, (table) => [
+  index('credit_types_display_order_idx').on(table.displayOrder),
+  index('credit_types_is_active_idx').on(table.isActive),
+]);
 
-### 7.4 Code Table
+export type CreditType = typeof CreditTypesTable.$inferSelect;
+export type NewCreditType = typeof CreditTypesTable.$inferInsert;
+```
 
-**Description:** Individual redemption codes provided by sponsors, tracking assignment and redemption status.
+**Field Details:**
 
-**Key Fields:** id, credit_type_id, code_value, redeem_url, assigned_to, assigned_at, redeemed_at, status
+| Field | Type | Nullable | Default | Description |
+|-------|------|----------|---------|-------------|
+| id | text (cuid) | No | auto | Primary key |
+| name | text | No | - | Unique internal identifier (lowercase, no spaces) |
+| displayName | text | No | - | Human-readable name shown in UI and emails |
+| emailInstructions | text | No | - | Brief redemption instructions for email |
+| webInstructions | text | No | - | Detailed HTML/Markdown instructions for dashboard |
+| displayOrder | integer | No | 0 | Sort order in participant dashboard |
+| iconUrl | text | Yes | null | URL to sponsor logo/icon |
+| isActive | boolean | No | true | Whether codes of this type are assigned during check-in |
 
-**Relationships:** Many-to-one with credit_types, many-to-one with participants (assigned_to)
+**Example Data:**
 
----
-
-### 7.5 FoodCheckin Table
-
-**Description:** Records of meal claims by participants, preventing duplicate claims per meal type.
-
-**Key Fields:** id, participant_id, meal_type, checked_in_by, checked_in_at
-
-**Relationships:** Many-to-one with participants (both participant_id and checked_in_by)
-
-**Constraints:** Unique constraint on (participant_id, meal_type)
-
----
-
-### 7.6 Workshop Table (Phase 2)
-
-**Description:** Workshop sessions available during the event with capacity and scheduling information.
-
-**Key Fields:** id, name, description, date, time_slot_start, time_slot_end, capacity, location
-
-**Relationships:** One-to-many with workshop_registrations
-
----
-
-### 7.7 WorkshopRegistration Table (Phase 2)
-
-**Description:** Tracks participant registrations for workshops with cancellation support.
-
-**Key Fields:** id, participant_id, workshop_id, registered_at, cancelled_at, status
-
-**Relationships:** Many-to-one with participants, many-to-one with workshops
-
----
-
-### 7.8 Team Table (Phase 2)
-
-**Description:** Hackathon teams formed by participants with captain designation.
-
-**Key Fields:** id, name, captain_id, created_at, updated_at
-
-**Relationships:** One-to-many with team_members, many-to-one with participants (captain)
+```sql
+INSERT INTO credit_types (id, name, display_name, email_instructions, web_instructions, display_order, icon_url, is_active) VALUES
+('cuid1', 'cursor', 'Cursor Pro Credits - 50 credits', 
+ 'Login to cursor.com → Settings → Billing → Paste code', 
+ '<h3>How to Redeem</h3><ol><li>Go to cursor.com</li><li>Login to your account</li>...</ol>',
+ 1, 'https://cdn.example.com/cursor-logo.png', true),
+('cuid2', 'anthropic', 'Anthropic API Credits - $25', 
+ 'Login to console.anthropic.com → Settings → Billing → Apply credit',
+ '<h3>How to Redeem</h3>...',
+ 2, 'https://cdn.example.com/anthropic-logo.png', true);
+```
 
 ---
 
-### 7.9 TeamMember Table (Phase 2)
+### 7.5 Codes Table
 
-**Description:** Join table linking participants to teams with membership status.
+**Description:** Individual redemption codes provided by sponsors. Tracks assignment to participants and redemption status.
 
-**Key Fields:** id, team_id, participant_id, joined_at, left_at, status
+**Schema Definition:**
 
-**Relationships:** Many-to-one with teams, many-to-one with participants
+```typescript
+// packages/core/src/hackathon.server/schemas/codes.sql.ts
+import { index, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { cuidId, timestamps } from '~/drizzle.server/types';
+import { CreditTypesTable } from './credit-types.sql';
+import { UsersTable } from '~/auth/schema';
+
+export const codeStatusEnum = pgEnum('code_status', ['unassigned', 'available', 'redeemed']);
+
+export const CodesTable = pgTable('codes', {
+  id: cuidId('id'),
+  creditTypeId: text('credit_type_id')
+    .notNull()
+    .references(() => CreditTypesTable.id, { onDelete: 'restrict' }),
+  codeValue: text('code_value').notNull(),         // The actual redemption code
+  redeemUrl: text('redeem_url').notNull(),         // URL where code is redeemed
+  assignedTo: text('assigned_to')
+    .references(() => UsersTable.id, { onDelete: 'set null' }),
+  assignedAt: timestamp('assigned_at'),
+  redeemedAt: timestamp('redeemed_at'),            // Self-reported by participant
+  status: codeStatusEnum('status').notNull().default('unassigned'),
+  ...timestamps,
+}, (table) => [
+  // Critical index for first-come-first-serve assignment query
+  index('codes_assignment_idx').on(table.creditTypeId, table.status),
+  // For looking up participant's assigned codes
+  index('codes_assigned_to_idx').on(table.assignedTo),
+  // Unique code per credit type (prevent duplicate imports)
+  index('codes_unique_per_type_idx').on(table.creditTypeId, table.codeValue),
+]);
+
+export type Code = typeof CodesTable.$inferSelect;
+export type NewCode = typeof CodesTable.$inferInsert;
+```
+
+**Field Details:**
+
+| Field | Type | Nullable | Default | Description |
+|-------|------|----------|---------|-------------|
+| id | text (cuid) | No | auto | Primary key |
+| creditTypeId | text | No | - | FK to credit_types |
+| codeValue | text | No | - | The actual redemption code string |
+| redeemUrl | text | No | - | URL where participant redeems code |
+| assignedTo | text | Yes | null | FK to users (participant who received code) |
+| assignedAt | timestamp | Yes | null | When code was assigned during check-in |
+| redeemedAt | timestamp | Yes | null | When participant marked as redeemed |
+| status | enum | No | 'unassigned' | Lifecycle: unassigned → available → redeemed |
+
+**Status Lifecycle:**
+1. `unassigned` - Imported but not assigned to anyone
+2. `available` - Assigned to participant during check-in, not yet redeemed
+3. `redeemed` - Participant self-reported as redeemed
+
+**Code Assignment Query (with row-level locking):**
+
+```typescript
+// First-come-first-serve assignment with PostgreSQL FOR UPDATE
+const assignCodeToParticipant = async (
+  tx: Transaction,
+  creditTypeId: string,
+  participantId: string
+) => {
+  // Lock one unassigned code
+  const [code] = await tx
+    .select()
+    .from(CodesTable)
+    .where(
+      and(
+        eq(CodesTable.creditTypeId, creditTypeId),
+        eq(CodesTable.status, 'unassigned')
+      )
+    )
+    .limit(1)
+    .for('update', { skipLocked: true }); // Skip already-locked rows
+  
+  if (!code) return null; // Pool exhausted
+  
+  // Assign to participant
+  await tx
+    .update(CodesTable)
+    .set({
+      assignedTo: participantId,
+      assignedAt: new Date(),
+      status: 'available',
+    })
+    .where(eq(CodesTable.id, code.id));
+  
+  return code;
+};
+```
+
+---
+
+### 7.6 Food Check-ins Table
+
+**Description:** Records of meal claims by participants. Prevents duplicate claims per meal type through unique constraint.
+
+**Schema Definition:**
+
+```typescript
+// packages/core/src/hackathon.server/schemas/food-checkins.sql.ts
+import { index, pgEnum, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { cuidId } from '~/drizzle.server/types';
+import { UsersTable } from '~/auth/schema';
+
+export const mealTypeEnum = pgEnum('meal_type', ['LUNCH_D1', 'DINNER_D1', 'BREAKFAST_D2']);
+
+export const FoodCheckinsTable = pgTable('food_checkins', {
+  id: cuidId('id'),
+  participantId: text('participant_id')
+    .notNull()
+    .references(() => UsersTable.id, { onDelete: 'cascade' }),
+  mealType: mealTypeEnum('meal_type').notNull(),
+  checkedInBy: text('checked_in_by')
+    .notNull()
+    .references(() => UsersTable.id, { onDelete: 'restrict' }), // Ops user
+  checkedInAt: timestamp('checked_in_at').notNull().defaultNow(),
+}, (table) => [
+  // Prevents duplicate meal claims - critical constraint
+  unique('food_checkins_unique').on(table.participantId, table.mealType),
+  // For querying participant's meal history
+  index('food_checkins_participant_idx').on(table.participantId),
+  // For meal session statistics
+  index('food_checkins_meal_type_idx').on(table.mealType),
+]);
+
+export type FoodCheckin = typeof FoodCheckinsTable.$inferSelect;
+export type NewFoodCheckin = typeof FoodCheckinsTable.$inferInsert;
+```
+
+**Field Details:**
+
+| Field | Type | Nullable | Default | Description |
+|-------|------|----------|---------|-------------|
+| id | text (cuid) | No | auto | Primary key |
+| participantId | text | No | - | FK to users (participant claiming meal) |
+| mealType | enum | No | - | LUNCH_D1, DINNER_D1, or BREAKFAST_D2 |
+| checkedInBy | text | No | - | FK to users (ops who scanned) |
+| checkedInAt | timestamp | No | now() | When meal was claimed |
+
+**Meal Types:**
+
+| Enum Value | Date | Time | Description |
+|------------|------|------|-------------|
+| LUNCH_D1 | Dec 6 | 12:00 PM | Day 1 Lunch |
+| DINNER_D1 | Dec 6 | 6:00 PM | Day 1 Dinner |
+| BREAKFAST_D2 | Dec 7 | 9:00 AM | Day 2 Breakfast |
+
+**Duplicate Prevention:**
+
+The unique constraint `(participant_id, meal_type)` prevents duplicate claims at the database level. If two ops scan simultaneously:
+
+```typescript
+// Concurrent scan protection
+const claimMeal = async (participantId: string, mealType: MealType, opsUserId: string) => {
+  try {
+    await db.insert(FoodCheckinsTable).values({
+      participantId,
+      mealType,
+      checkedInBy: opsUserId,
+    });
+    return { success: true };
+  } catch (error) {
+    if (error.code === '23505') { // PostgreSQL unique violation
+      const existing = await db.query.FoodCheckinsTable.findFirst({
+        where: and(
+          eq(FoodCheckinsTable.participantId, participantId),
+          eq(FoodCheckinsTable.mealType, mealType)
+        ),
+      });
+      return { 
+        success: false, 
+        error: `Already claimed at ${existing?.checkedInAt}` 
+      };
+    }
+    throw error;
+  }
+};
+```
+
+---
+
+### 7.7 Relations Definition
+
+**Description:** Drizzle ORM relation definitions for type-safe queries with joins.
+
+```typescript
+// packages/core/src/hackathon.server/schemas/relations.ts
+import { relations } from 'drizzle-orm';
+import { UsersTable } from '~/auth/schema';
+import { CreditTypesTable } from './credit-types.sql';
+import { CodesTable } from './codes.sql';
+import { FoodCheckinsTable } from './food-checkins.sql';
+
+export const usersRelations = relations(UsersTable, ({ many, one }) => ({
+  // Codes assigned to this participant
+  assignedCodes: many(CodesTable, { relationName: 'assignedCodes' }),
+  // Food claims by this participant
+  foodCheckins: many(FoodCheckinsTable, { relationName: 'participantCheckins' }),
+  // Food check-ins processed by this ops user
+  processedFoodCheckins: many(FoodCheckinsTable, { relationName: 'opsCheckins' }),
+  // Who checked in this participant
+  checkedInByUser: one(UsersTable, {
+    fields: [UsersTable.checkedInBy],
+    references: [UsersTable.id],
+    relationName: 'checkedInBy',
+  }),
+}));
+
+export const creditTypesRelations = relations(CreditTypesTable, ({ many }) => ({
+  codes: many(CodesTable),
+}));
+
+export const codesRelations = relations(CodesTable, ({ one }) => ({
+  creditType: one(CreditTypesTable, {
+    fields: [CodesTable.creditTypeId],
+    references: [CreditTypesTable.id],
+  }),
+  assignedToUser: one(UsersTable, {
+    fields: [CodesTable.assignedTo],
+    references: [UsersTable.id],
+    relationName: 'assignedCodes',
+  }),
+}));
+
+export const foodCheckinsRelations = relations(FoodCheckinsTable, ({ one }) => ({
+  participant: one(UsersTable, {
+    fields: [FoodCheckinsTable.participantId],
+    references: [UsersTable.id],
+    relationName: 'participantCheckins',
+  }),
+  processedBy: one(UsersTable, {
+    fields: [FoodCheckinsTable.checkedInBy],
+    references: [UsersTable.id],
+    relationName: 'opsCheckins',
+  }),
+}));
+```
+
+---
+
+### 7.8 Schema Export
+
+**Description:** Central export file for all hackathon schemas.
+
+```typescript
+// packages/core/src/hackathon.server/schemas/index.ts
+export { CreditTypesTable, type CreditType, type NewCreditType } from './credit-types.sql';
+export { CodesTable, codeStatusEnum, type Code, type NewCode } from './codes.sql';
+export { FoodCheckinsTable, mealTypeEnum, type FoodCheckin, type NewFoodCheckin } from './food-checkins.sql';
+export * from './relations';
+```
+
+---
+
+### 7.9 QR Code Value Generation
+
+**Description:** QR code values are generated once and stored in the user record. Uses HMAC-SHA256 for signature verification.
+
+```typescript
+// packages/core/src/hackathon.server/qr-code.ts
+import { createHmac } from 'crypto';
+import { env } from '~/config/env';
+
+interface QRPayload {
+  participantId: string;
+  type: 'permanent';
+  signature: string;
+}
+
+export const generateQRCodeValue = (participantId: string): string => {
+  const payload = {
+    participantId,
+    type: 'permanent' as const,
+  };
+  
+  const signature = createHmac('sha256', env.QR_SECRET_KEY)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+  
+  const fullPayload: QRPayload = { ...payload, signature };
+  
+  return Buffer.from(JSON.stringify(fullPayload)).toString('base64url');
+};
+
+export const verifyQRCodeValue = (qrValue: string): { valid: true; participantId: string } | { valid: false; error: string } => {
+  try {
+    const decoded = JSON.parse(Buffer.from(qrValue, 'base64url').toString()) as QRPayload;
+    
+    const expectedPayload = {
+      participantId: decoded.participantId,
+      type: decoded.type,
+    };
+    
+    const expectedSignature = createHmac('sha256', env.QR_SECRET_KEY)
+      .update(JSON.stringify(expectedPayload))
+      .digest('hex');
+    
+    if (decoded.signature !== expectedSignature) {
+      return { valid: false, error: 'Invalid signature' };
+    }
+    
+    return { valid: true, participantId: decoded.participantId };
+  } catch {
+    return { valid: false, error: 'Invalid QR format' };
+  }
+};
+```
+
+**Environment Variable Required:**
+
+```typescript
+// Add to packages/core/src/config/env.ts
+const EnvSchema = z.object({
+  // ... existing
+  QR_SECRET_KEY: z.string().min(32), // Minimum 32 chars for security
+  RESEND_API_KEY: z.string().min(1),
+});
+```
+
+---
+
+### 7.10 Database Migration Strategy
+
+**Description:** Migration approach for setting up the hackathon schema.
+
+**Migration Files:**
+
+```sql
+-- 0002_hackathon_schema.sql
+
+-- Enums
+CREATE TYPE user_role AS ENUM ('participant', 'ops', 'admin');
+CREATE TYPE participant_type AS ENUM ('regular', 'vip');
+CREATE TYPE participant_status AS ENUM ('registered', 'checked_in');
+CREATE TYPE code_status AS ENUM ('unassigned', 'available', 'redeemed');
+CREATE TYPE meal_type AS ENUM ('LUNCH_D1', 'DINNER_D1', 'BREAKFAST_D2');
+
+-- Extend users table
+ALTER TABLE users 
+  ADD COLUMN luma_id TEXT,
+  ADD COLUMN role user_role NOT NULL DEFAULT 'participant',
+  ADD COLUMN participant_type participant_type NOT NULL DEFAULT 'regular',
+  ADD COLUMN status participant_status NOT NULL DEFAULT 'registered',
+  ADD COLUMN checked_in_at TIMESTAMP,
+  ADD COLUMN checked_in_by TEXT REFERENCES users(id),
+  ADD COLUMN qr_code_value TEXT;
+
+CREATE INDEX users_luma_id_idx ON users(luma_id);
+CREATE INDEX users_status_idx ON users(status);
+CREATE INDEX users_role_idx ON users(role);
+
+-- Credit types table
+CREATE TABLE credit_types (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  email_instructions TEXT NOT NULL,
+  web_instructions TEXT NOT NULL,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  icon_url TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX credit_types_display_order_idx ON credit_types(display_order);
+CREATE INDEX credit_types_is_active_idx ON credit_types(is_active);
+
+-- Codes table
+CREATE TABLE codes (
+  id TEXT PRIMARY KEY,
+  credit_type_id TEXT NOT NULL REFERENCES credit_types(id) ON DELETE RESTRICT,
+  code_value TEXT NOT NULL,
+  redeem_url TEXT NOT NULL,
+  assigned_to TEXT REFERENCES users(id) ON DELETE SET NULL,
+  assigned_at TIMESTAMP,
+  redeemed_at TIMESTAMP,
+  status code_status NOT NULL DEFAULT 'unassigned',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX codes_assignment_idx ON codes(credit_type_id, status);
+CREATE INDEX codes_assigned_to_idx ON codes(assigned_to);
+CREATE UNIQUE INDEX codes_unique_per_type_idx ON codes(credit_type_id, code_value);
+
+-- Food check-ins table
+CREATE TABLE food_checkins (
+  id TEXT PRIMARY KEY,
+  participant_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  meal_type meal_type NOT NULL,
+  checked_in_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  checked_in_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE(participant_id, meal_type)
+);
+
+CREATE INDEX food_checkins_participant_idx ON food_checkins(participant_id);
+CREATE INDEX food_checkins_meal_type_idx ON food_checkins(meal_type);
+```
+
+**Generate Migration:**
+
+```bash
+pnpm db:generate  # Generate migration from Drizzle schema
+pnpm db:migrate   # Apply migration to database
+```
+
+---
+
+### 7.11 Phase 2 Tables (Reference Only)
+
+These tables are documented for future implementation but NOT included in Phase 1.
+
+**Workshops Table:**
+```typescript
+export const WorkshopsTable = pgTable('workshops', {
+  id: cuidId('id'),
+  name: text('name').notNull(),
+  description: text('description'),
+  date: timestamp('date').notNull(),
+  timeSlotStart: timestamp('time_slot_start').notNull(),
+  timeSlotEnd: timestamp('time_slot_end').notNull(),
+  capacity: integer('capacity').notNull(),
+  location: text('location').notNull(),
+  ...timestamps,
+});
+```
+
+**Workshop Registrations Table:**
+```typescript
+export const WorkshopRegistrationsTable = pgTable('workshop_registrations', {
+  id: cuidId('id'),
+  participantId: text('participant_id').notNull().references(() => UsersTable.id),
+  workshopId: text('workshop_id').notNull().references(() => WorkshopsTable.id),
+  registeredAt: timestamp('registered_at').notNull().defaultNow(),
+  cancelledAt: timestamp('cancelled_at'),
+  status: pgEnum('registration_status', ['registered', 'cancelled', 'attended']),
+});
+```
+
+**Teams Table:**
+```typescript
+export const TeamsTable = pgTable('teams', {
+  id: cuidId('id'),
+  name: text('name').notNull().unique(),
+  captainId: text('captain_id').notNull().references(() => UsersTable.id),
+  ...timestamps,
+});
+```
+
+**Team Members Table:**
+```typescript
+export const TeamMembersTable = pgTable('team_members', {
+  id: cuidId('id'),
+  teamId: text('team_id').notNull().references(() => TeamsTable.id),
+  participantId: text('participant_id').notNull().references(() => UsersTable.id),
+  joinedAt: timestamp('joined_at').notNull().defaultNow(),
+  leftAt: timestamp('left_at'),
+  status: pgEnum('member_status', ['active', 'left']),
+});
 
 ---
 
@@ -1816,25 +2468,33 @@ This section documents all technology choices, architecture decisions, deploymen
 **Description:** Frontend framework selection, state management, routing, and build configuration.
 
 **Technologies:**
-- Tanstack Start (React framework)
-- Styling approach (Tailwind CSS)
-- State management solution
-- Routing configuration
-- Build tools and optimization
+- **TanStack Start** - React 19 full-stack framework with file-based routing
+- **TanStack Query** - Server state management and data fetching
+- **Tailwind v4** - Utility-first CSS framework
+- **Shadcn UI** - Accessible component library (via `@base/ui`)
+- **Vite** - Build tool and dev server
+
+**Key Patterns:**
+- Server functions for backend operations (in `apps/web/src/apis/`)
+- Path aliases: `~/*` for same-package, `@base/core/*`, `@base/ui/*`
+- Mobile-first responsive design
 
 ---
 
 ### 9.2 Backend Architecture
 
-**Description:** Backend platform, API design, database setup, and serverless functions.
+**Description:** Backend platform, API design, database setup, and server functions.
 
 **Technologies:**
-- Convex (backend + real-time database)
-- Hono (API framework)
-- Better Auth (authentication)
-- API endpoint structure
-- Real-time subscriptions
-- Error handling patterns
+- **TanStack Start Server Functions** - RPC-style backend operations
+- **TanStack Start Server Routes** - Stable URLs for webhooks/auth callbacks
+- **Better Auth** - Authentication with magic link plugin
+- **Drizzle ORM** - Type-safe database queries
+
+**API Structure:**
+- Server functions in `apps/web/src/apis/` for UI-triggered operations
+- Server routes for external integrations (auth callbacks, webhooks)
+- Business logic in `packages/core/src/hackathon.server/`
 
 ---
 
@@ -1843,11 +2503,22 @@ This section documents all technology choices, architecture decisions, deploymen
 **Description:** Database technology, schema design, indexing strategy, and data migration approach.
 
 **Technologies:**
-- Convex database (NoSQL/document-based)
-- Index strategy for performance
-- Data validation rules
-- Migration/seeding approach
-- Backup strategy
+- **PostgreSQL** - Relational database with row-level locking support
+- **Drizzle ORM** - Type-safe schema definitions and queries
+- **Drizzle Kit** - Migration generation and management
+
+**Migration Commands:**
+```bash
+pnpm db:generate  # Generate migration from schema changes
+pnpm db:migrate   # Apply migrations to database
+pnpm db:push      # Quick schema sync (development only)
+```
+
+**Index Strategy:**
+- `codes(credit_type_id, status)` - First-come-first-serve code assignment
+- `codes(assigned_to)` - Participant's assigned codes lookup
+- `food_checkins(participant_id, meal_type)` - Unique constraint + lookup
+- `users(email, luma_id, status, role)` - Various lookup patterns
 
 ---
 
@@ -1856,12 +2527,44 @@ This section documents all technology choices, architecture decisions, deploymen
 **Description:** Authentication flow implementation, session management, and role-based access control.
 
 **Technologies:**
-- Better Auth integration
-- Magic link implementation
-- Session storage (server-side)
-- JWT/token management
-- Role-based middleware
-- Permission checking logic
+- **Better Auth** - Core authentication framework
+- **Magic Link Plugin** - Passwordless email authentication
+- **Drizzle Adapter** - Database integration
+
+**Configuration:**
+```typescript
+// Session: 7 days with daily refresh
+session: {
+  expiresIn: 60 * 60 * 24 * 7,
+  updateAge: 60 * 60 * 24,
+}
+
+// Magic Link: 1 hour expiry, signup disabled
+magicLink({
+  expiresIn: 60 * 60,
+  disableSignUp: true, // Only pre-imported users
+})
+```
+
+**Role-Based Access:**
+| Role | Access Level |
+|------|--------------|
+| participant | Own dashboard, QR code, credits |
+| ops | Scanner interface, check-in processing |
+| admin | Full access, imports, management |
+
+**Authorization Middleware Pattern:**
+```typescript
+const requireRole = (allowedRoles: UserRole[]) => {
+  return async (ctx) => {
+    const session = await auth.api.getSession(ctx);
+    if (!session || !allowedRoles.includes(session.user.role)) {
+      throw new Error('Unauthorized');
+    }
+    return session;
+  };
+};
+```
 
 ---
 
@@ -1870,12 +2573,37 @@ This section documents all technology choices, architecture decisions, deploymen
 **Description:** QR code generation library, encoding strategy, signature algorithm, and scanning library.
 
 **Technologies:**
-- QR code generation (qrcode library)
-- Payload encoding (JWT or custom)
-- Signature algorithm (HMAC-SHA256)
-- QR scanning (html5-qrcode)
-- Camera access handling
-- Offline QR support
+- **qrcode** - QR code image generation (PNG/SVG)
+- **html5-qrcode** - Camera-based QR scanning in browser
+- **crypto** (Node.js) - HMAC-SHA256 signature generation
+
+**Payload Format:**
+```json
+{
+  "participantId": "cuid_xxx",
+  "type": "permanent",
+  "signature": "hmac_sha256_hex"
+}
+```
+
+**Encoding:** Base64URL encoded JSON payload
+
+**Security:**
+- HMAC-SHA256 signature using `QR_SECRET_KEY` environment variable
+- Server-side validation only (never trust client)
+- Signature verified before any action
+- Permanent QR (no timestamp/expiry in payload)
+
+**Generation Flow:**
+1. User created/imported → `qr_code_value` generated and stored
+2. Dashboard displays QR from stored value
+3. Check-in email embeds QR as PNG image
+
+**Validation Flow:**
+1. Ops scans QR → decode base64url → parse JSON
+2. Verify HMAC signature matches
+3. Lookup participant by `participantId`
+4. Process check-in or food claim
 
 ---
 
