@@ -19,6 +19,7 @@ import { FileUpload } from '@base/ui/components/file-upload';
 import { Input } from '@base/ui/components/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@base/ui/components/select';
 
+import { getWelcomeEmailStats, sendWelcomeEmails } from '~/apis/admin/emails';
 import {
   createUser,
   importParticipants,
@@ -115,6 +116,7 @@ function ParticipantsPage() {
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -143,6 +145,26 @@ function ParticipantsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['participants', listParams],
     queryFn: () => listParticipants({ data: listParams }),
+  });
+
+  const { data: emailStats, refetch: refetchEmailStats } = useQuery({
+    queryKey: ['welcome-email-stats'],
+    queryFn: () => getWelcomeEmailStats(),
+    enabled: emailDialogOpen,
+  });
+
+  const [emailResult, setEmailResult] = useState<{
+    sentCount: number;
+    failedCount: number;
+    failures: Array<{ email: string; error: string }>;
+  } | null>(null);
+
+  const sendEmailsMutation = useMutation({
+    mutationFn: () => sendWelcomeEmails(),
+    onSuccess: (result) => {
+      setEmailResult(result);
+      queryClient.invalidateQueries({ queryKey: ['welcome-email-stats'] });
+    },
   });
 
   const createUserMutation = useMutation({
@@ -232,10 +254,102 @@ function ParticipantsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2">
-            <Mail className="h-4 w-4" />
-            Send Invites
-          </Button>
+          <Dialog
+            open={emailDialogOpen}
+            onOpenChange={(open) => {
+              setEmailDialogOpen(open);
+              if (!open) {
+                setEmailResult(null);
+              } else {
+                refetchEmailStats();
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Mail className="h-4 w-4" />
+                Send Welcome Emails
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Send Welcome Emails</DialogTitle>
+                <DialogDescription>
+                  Send welcome emails to all participants who haven't received one yet.
+                </DialogDescription>
+              </DialogHeader>
+
+              {emailResult ? (
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center gap-3 rounded-lg bg-green-50 p-4">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-800">Successfully sent {emailResult.sentCount} emails</p>
+                      {emailResult.failedCount > 0 && (
+                        <p className="text-sm text-red-700">{emailResult.failedCount} failed</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {emailResult.failures.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto rounded-lg border p-3">
+                      <p className="mb-2 text-sm font-medium text-gray-700">Failed emails:</p>
+                      {emailResult.failures.map((f, i) => (
+                        <p key={i} className="text-xs text-red-600">
+                          {f.email}: {f.error}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                      Close
+                    </Button>
+                  </DialogFooter>
+                </div>
+              ) : (
+                <div className="space-y-4 py-4">
+                  <div className="rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Emails to send:</span>
+                      <span className="font-semibold">{emailStats?.pendingCount ?? '-'}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Already sent:</span>
+                      <span className="text-gray-500">{emailStats?.sentCount ?? '-'}</span>
+                    </div>
+                  </div>
+
+                  {emailStats?.pendingCount === 0 && (
+                    <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
+                      <CheckCircle2 className="h-4 w-4" />
+                      All participants have already received welcome emails.
+                    </div>
+                  )}
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => sendEmailsMutation.mutate()}
+                      disabled={sendEmailsMutation.isPending || emailStats?.pendingCount === 0}
+                    >
+                      {sendEmailsMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        `Send ${emailStats?.pendingCount ?? 0} Emails`
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
 
           <Dialog
             open={importDialogOpen}

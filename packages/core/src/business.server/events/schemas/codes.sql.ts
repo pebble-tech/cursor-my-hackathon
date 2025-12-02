@@ -1,8 +1,7 @@
 import { index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
-import { CodeStatusCodes } from '~/config/constant';
-
 import { UsersTable } from '../../../auth/schema';
+import { CodeStatusCodes } from '../../../config/constant';
 import { cuidId, timestamps } from '../../../drizzle.server/types';
 import { CreditTypesTable } from './credit-types.sql';
 
@@ -30,6 +29,3 @@ export const CodesTable = pgTable(
 
 export type Code = typeof CodesTable.$inferSelect;
 export type NewCode = typeof CodesTable.$inferInsert;
-
-// Re-export for backward compatibility
-export { CodeStatusCodes as CODE_STATUS, CodeStatusEnum, type CodeStatus } from '~/config/constant';

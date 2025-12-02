@@ -414,11 +414,11 @@ flowchart TD
 
 **Relevant files:** `packages/core/src/email/templates/welcome.ts`
 
-- [ ] Create HTML template with platform URL
-- [ ] Include login instructions (use email for magic link)
-- [ ] Include event date/time info (Dec 6-7)
-- [ ] Include venue info (Level 2, Monash University)
-- [ ] Mobile-responsive design
+- [x] Create HTML template with platform URL
+- [x] Include login instructions (use email for magic link)
+- [x] Include event date/time info (Dec 6-7)
+- [x] Include venue info (Level 2, Monash University)
+- [x] Mobile-responsive design
 
 ### Task E.2: Create VIP Welcome Email Template
 
@@ -426,11 +426,11 @@ flowchart TD
 
 **Relevant files:** `packages/core/src/email/templates/welcome-vip.ts`
 
-- [ ] Create HTML template with QR code image embedded
-- [ ] Include food schedule info
-- [ ] Explain QR code usage (show at food stations)
-- [ ] Note that QR never expires
-- [ ] No login instructions (VIPs don't login)
+- [x] Create HTML template with QR code image embedded
+- [x] Include food schedule info
+- [x] Explain QR code usage (show at food stations)
+- [x] Note that QR never expires
+- [x] No login instructions (VIPs don't login)
 
 ### Task E.3: Create QR Code Image Generator
 
@@ -438,10 +438,10 @@ flowchart TD
 
 **Relevant files:** `packages/core/src/business.server/events/qr-image.ts`
 
-- [ ] Install `qrcode` package if not present
-- [ ] Create function to generate QR code PNG buffer from value
-- [ ] Support configurable size (default 400x400)
-- [ ] Return base64 data URL for email embedding
+- [x] Install `qrcode` package if not present
+- [x] Create function to generate QR code PNG buffer from value
+- [x] Support configurable size (default 400x400)
+- [x] Return base64 data URL for email embedding
 
 ### Task E.4: Create Send Welcome Emails Server Function
 
@@ -449,12 +449,12 @@ flowchart TD
 
 **Relevant files:** `apps/web/src/apis/admin/emails.ts`
 
-- [ ] Create `sendWelcomeEmails` server function
-- [ ] Add `welcomeEmailSentAt` field to track sent status (may need migration)
-- [ ] Fetch users who haven't received welcome email
-- [ ] For each user: send appropriate email type (regular vs VIP)
-- [ ] Update `welcomeEmailSentAt` after successful send
-- [ ] Return summary (sent count, failed count)
+- [x] Create `sendWelcomeEmails` server function
+- [x] Add `welcomeEmailSentAt` field to track sent status (may need migration)
+- [x] Fetch users who haven't received welcome email
+- [x] For each user: send appropriate email type (regular vs VIP)
+- [x] Update `welcomeEmailSentAt` after successful send
+- [x] Return summary (sent count, failed count)
 
 ### Task E.5: Add Welcome Email UI Trigger
 
@@ -462,10 +462,10 @@ flowchart TD
 
 **Relevant files:** `apps/web/src/routes/admin/participants.tsx`
 
-- [ ] Add "Send Welcome Emails" button in header area
-- [ ] Show confirmation dialog with count of unsent emails
-- [ ] Progress indicator during batch send
-- [ ] Show results summary on completion
+- [x] Add "Send Welcome Emails" button in header area
+- [x] Show confirmation dialog with count of unsent emails
+- [x] Progress indicator during batch send
+- [x] Show results summary on completion
 
 ---
 
@@ -671,3 +671,33 @@ Update schema in `packages/core/src/auth/schema.ts` and generate migration.
     ├── /admin/checkin-types
     └── /admin/dashboard
 ```
+
+---
+
+## 9. Implementation Notes
+
+### Phase E Implementation (Welcome Emails)
+
+**Files Created:**
+- `packages/core/src/email/templates/welcome.ts` - Regular participant welcome email
+- `packages/core/src/email/templates/welcome-vip.ts` - VIP welcome email with QR code
+- `packages/core/src/business.server/events/qr-image.ts` - QR code image generator using `qrcode` package
+- `apps/web/src/apis/admin/emails.ts` - Server functions for email stats and sending
+- `packages/core/src/db/migrations/0005_add_welcome_email_sent_at.sql` - Migration for tracking sent emails
+
+**Schema Changes:**
+- Added `welcomeEmailSentAt` timestamp field to `UsersTable`
+
+**Dependencies Added:**
+- `qrcode` (runtime) and `@types/qrcode` (dev) in `packages/core`
+
+**Technical Decisions:**
+- Emails are sent sequentially (not in parallel) to avoid rate limit issues with Resend
+- VIPs receive QR code embedded as base64 data URL directly in the email HTML
+- Failed email sends are tracked and reported back to the admin UI
+- Only users with `role: 'participant'` receive welcome emails (admin/ops excluded)
+
+**Known Limitations:**
+- No background job queue for large batches - emails are sent synchronously in the request
+- No retry mechanism for failed sends - admin must manually trigger again
+- drizzle-kit has issues with `~/*` path alias - migration was created manually

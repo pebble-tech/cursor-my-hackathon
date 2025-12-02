@@ -1,6 +1,6 @@
 import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
-import { ParticipantStatusCodes, ParticipantTypeCodes, UserRoleCodes } from '~/config/constant';
+import { ParticipantStatusCodes, ParticipantTypeCodes, UserRoleCodes } from '../config/constant';
 
 export const UsersTable = pgTable(
   'users',
@@ -25,6 +25,7 @@ export const UsersTable = pgTable(
     checkedInAt: timestamp('checked_in_at'),
     checkedInBy: text('checked_in_by'),
     qrCodeValue: text('qr_code_value'),
+    welcomeEmailSentAt: timestamp('welcome_email_sent_at'),
   },
   (table) => [
     index('users_luma_id_idx').on(table.lumaId),
