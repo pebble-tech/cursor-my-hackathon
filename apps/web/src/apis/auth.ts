@@ -1,6 +1,8 @@
-import { UserRoleEnum, type UserRole } from '@base/core/config/constant';
 import { createServerFn } from '@tanstack/react-start';
 import { getWebRequest } from '@tanstack/react-start/server';
+
+import { auth } from '@base/core/auth/auth';
+import { UserRoleEnum, type UserRole } from '@base/core/config/constant';
 
 export type { UserRole };
 
@@ -29,36 +31,36 @@ export type User = Session['user'];
 export const getServerSession = createServerFn({ method: 'GET' }).handler(async () => {
   const request = getWebRequest();
   if (!request) return null;
-  const { auth } = await import('@base/core/auth/auth');
   return await auth.api.getSession({ headers: request.headers });
 });
 
-export async function requireSession(): Promise<Session> {
+export const requireSession = createServerFn({ method: 'GET' }).handler(async (): Promise<Session> => {
   const request = getWebRequest();
   if (!request) throw new Error('No request context');
 
-  const { auth } = await import('@base/core/auth/auth');
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) throw new Error('Unauthorized');
 
   return session as Session;
-}
+});
 
-export async function requireRole(allowedRoles: UserRole[]): Promise<Session> {
-  const session = await requireSession();
+export const requireRole = createServerFn({ method: 'GET' })
+  .validator((allowedRoles: UserRole[]) => allowedRoles)
+  .handler(async ({ data: allowedRoles }): Promise<Session> => {
+    const session = await requireSession();
 
-  const userRole = session.user.role as UserRole;
-  if (!allowedRoles.includes(userRole)) {
-    throw new Error('Forbidden');
-  }
+    const userRole = session.user.role as UserRole;
+    if (!allowedRoles.includes(userRole)) {
+      throw new Error('Forbidden');
+    }
 
-  return session;
-}
+    return session;
+  });
 
-export async function requireAdmin(): Promise<Session> {
-  return requireRole([UserRoleEnum.admin]);
-}
+export const requireAdmin = createServerFn({ method: 'GET' }).handler(async (): Promise<Session> => {
+  return requireRole({ data: [UserRoleEnum.admin] });
+});
 
-export async function requireOpsOrAdmin(): Promise<Session> {
-  return requireRole([UserRoleEnum.ops, UserRoleEnum.admin]);
-}
+export const requireOpsOrAdmin = createServerFn({ method: 'GET' }).handler(async (): Promise<Session> => {
+  return requireRole({ data: [UserRoleEnum.ops, UserRoleEnum.admin] });
+});

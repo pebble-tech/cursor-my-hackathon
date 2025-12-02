@@ -1,21 +1,12 @@
-import { UserRoleEnum } from '@base/core/config/constant';
-import type { SQL } from '@base/core/drizzle.server';
 import { createServerFn } from '@tanstack/react-start';
-import { getWebRequest } from '@tanstack/react-start/server';
 import cuid from 'cuid';
 import { z } from 'zod';
 
-async function requireAdminSession() {
-  const request = getWebRequest();
-  if (!request) throw new Error('No request context');
+import { UsersTable } from '@base/core/auth/schema';
+import { generateQRCodeValue } from '@base/core/business.server/events/events';
+import { and, asc, count, db, desc, eq, inArray, like, or, type SQL } from '@base/core/drizzle.server';
 
-  const { auth } = await import('@base/core/auth/auth');
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) throw new Error('Unauthorized');
-  if (session.user.role !== UserRoleEnum.admin) throw new Error('Forbidden');
-
-  return session;
-}
+import { requireAdmin } from '~/apis/auth';
 
 const listParticipantsInputSchema = z.object({
   page: z.number().min(1).default(1),
@@ -33,10 +24,7 @@ export type ListParticipantsInput = z.infer<typeof listParticipantsInputSchema>;
 export const listParticipants = createServerFn({ method: 'GET' })
   .validator((data: ListParticipantsInput) => listParticipantsInputSchema.parse(data))
   .handler(async ({ data }) => {
-    await requireAdminSession();
-
-    const { UsersTable } = await import('@base/core/auth/schema');
-    const { db, eq, or, like, and, count, asc, desc } = await import('@base/core/drizzle.server');
+    await requireAdmin();
 
     const { page, pageSize, search, status, participantType, role, sortBy, sortOrder } = data;
     const offset = (page - 1) * pageSize;
@@ -115,11 +103,7 @@ export type CreateUserInput = z.infer<typeof createUserInputSchema>;
 export const createUser = createServerFn({ method: 'POST' })
   .validator((data: CreateUserInput) => createUserInputSchema.parse(data))
   .handler(async ({ data }) => {
-    await requireAdminSession();
-
-    const { UsersTable } = await import('@base/core/auth/schema');
-    const { db, eq } = await import('@base/core/drizzle.server');
-    const { generateQRCodeValue } = await import('@base/core/business.server/events/events');
+    await requireAdmin();
 
     const { name, email, userType } = data;
     const normalizedEmail = email.toLowerCase().trim();
@@ -184,11 +168,7 @@ type SkippedRow = {
 export const importParticipants = createServerFn({ method: 'POST' })
   .validator((data: ImportParticipantsInput) => importParticipantsInputSchema.parse(data))
   .handler(async ({ data }) => {
-    await requireAdminSession();
-
-    const { UsersTable } = await import('@base/core/auth/schema');
-    const { db, inArray } = await import('@base/core/drizzle.server');
-    const { generateQRCodeValue } = await import('@base/core/business.server/events/events');
+    await requireAdmin();
 
     const { participants } = data;
 

@@ -25,12 +25,12 @@
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "catalog:",
-    "lint-staged": "^16.1.2",
-    "oxlint": "^1.14.0",
+    "lint-staged": "^16.2.7",
+    "oxlint": "^1.31.0",
     "prettier": "catalog:",
-    "prettier-plugin-tailwindcss": "^0.6.13",
-    "simple-git-hooks": "^2.13.0",
-    "typescript": "^5.9.2"
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "^5.9.3"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm dlx lint-staged"
@@ -47,4 +47,3 @@
     }
   }
 }
-

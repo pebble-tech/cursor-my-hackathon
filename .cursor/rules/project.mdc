@@ -53,6 +53,7 @@ This is a monorepo project using PNPM. Core frameworks and packages:
 - Use `@base/core/*` for core package imports
 - Use `@base/ui/*` for UI package imports
 - Always use `logging.ts` util for application logs, avoid using console.log directly unless for temporary debugging
+- No inline await import, always use high level import unless instruct for code-spliting or perf improvement
 
 ### TypeScript & Quality
 - Follow TypeScript best practices strictly
@@ -60,6 +61,9 @@ This is a monorepo project using PNPM. Core frameworks and packages:
 - Use `pnpm typecheck` and `pnpm lint` at root level to verify code quality
 
 ## TanStack Start: Server Functions vs Server Routes
+
+### Server Context & Request Handling
+- Server context such as getWebRequest, getCookies only work within Tanstack server function or route
 
 ### Server Functions (preferred for app-internal operations)
 - Use for RPC-style calls from components, hooks, loaders (no stable public URL)
