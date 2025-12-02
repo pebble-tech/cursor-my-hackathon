@@ -23,6 +23,8 @@ export default {
     '^(react/(.*)$)|^(react$)|^(react-native(.*)$)',
     '<THIRD_PARTY_MODULES>',
     '',
+    '^@base/(.*)$',
+    '',
     '^~/lib/(.*)$',
     '^~/layouts/(.*)$',
     '^~/components/(.*)$',

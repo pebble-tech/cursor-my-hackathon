@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Button } from '@base/ui/components/button';
-import { Input } from '@base/ui/components/input';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
+
+import { Button } from '@base/ui/components/button';
+import { Input } from '@base/ui/components/input';
 
 import { getServerSession } from '~/apis/auth';
 import { authClient } from '~/utils/auth-client';

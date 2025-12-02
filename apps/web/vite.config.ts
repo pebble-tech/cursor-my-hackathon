@@ -10,4 +10,3 @@ export default defineConfig({
   },
   plugins: [tsconfigPaths(), tanstackStart({ customViteReactPlugin: true, target: 'vercel' }), react(), tailwindcss()],
 });
-

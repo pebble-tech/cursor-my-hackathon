@@ -54,17 +54,19 @@ pnpm --filter @base/core db:migrate
 ## Troubleshooting
 
 **Build fails**
+
 - Check all environment variables are set
 - Verify database connection
 - Run `pnpm typecheck` locally first
 
 **Database errors**
+
 - Ensure migrations are applied
 - Check `DATABASE_URL` format
 - Verify network access to database
 
 **Auth issues**
+
 - Verify OAuth credentials
 - Check `APP_BASE_URL` matches domain
 - Ensure callback URLs are configured in OAuth app
-

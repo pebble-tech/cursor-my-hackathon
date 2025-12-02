@@ -15,4 +15,3 @@ workspace/
 ## Task Workflow
 
 See `.cursor/rules/project.mdc` for task workflow guidelines.
-

@@ -1,6 +1,3 @@
-import { Button } from '@base/ui/components/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@base/ui/components/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@base/ui/components/table';
 import {
   flexRender,
   getCoreRowModel,
@@ -11,6 +8,10 @@ import {
   type PaginationState,
 } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+
+import { Button } from '~/components/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/table';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];

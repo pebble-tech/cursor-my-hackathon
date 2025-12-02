@@ -13,11 +13,13 @@ packages/ui     → Shared UI components
 ## Tech Stack
 
 **Frontend**
+
 - React 19 + TanStack Start (SSR)
 - TanStack Query (data fetching)
 - Tailwind v4 + Shadcn UI
 
 **Backend**
+
 - Better Auth (authentication)
 - Drizzle ORM + PostgreSQL
 - AI SDK v5 via AI Gateway
@@ -39,25 +41,30 @@ business.server/
 ```
 
 **Example:**
+
 ```typescript
 // packages/core/src/business.server/posts/schemas/posts.sql.ts
-import { cuidId, timestamps } from '~/drizzle.server/types';
+// packages/core/src/business.server/posts/schemas/comments.sql.ts
+import { bigSerialId, cuidId, timestamps, timestamps } from '~/drizzle.server/types';
 
 export const PostsTable = pgTable('posts', {
-  id: cuidId('id'),              // User-facing: use CUID
+  id: cuidId('id'), // User-facing: use CUID
   title: varchar('title', { length: 255 }).notNull(),
-  authorId: text('author_id').notNull().references(() => UsersTable.id),
-  ...timestamps,                 // Auto-adds createdAt, updatedAt
+  authorId: text('author_id')
+    .notNull()
+    .references(() => UsersTable.id),
+  ...timestamps, // Auto-adds createdAt, updatedAt
 });
 
-// packages/core/src/business.server/posts/schemas/comments.sql.ts
-import { bigSerialId, timestamps } from '~/drizzle.server/types';
-
 export const CommentsTable = pgTable('comments', {
-  id: bigSerialId('id'),         // Internal: use serial ID
+  id: bigSerialId('id'), // Internal: use serial ID
   content: text('content').notNull(),
-  postId: text('post_id').notNull().references(() => PostsTable.id),
-  authorId: text('author_id').notNull().references(() => UsersTable.id, { onDelete: 'cascade' }),
+  postId: text('post_id')
+    .notNull()
+    .references(() => PostsTable.id),
+  authorId: text('author_id')
+    .notNull()
+    .references(() => UsersTable.id, { onDelete: 'cascade' }),
   ...timestamps,
 });
 
@@ -72,6 +79,7 @@ export async function createPost(data: NewPost) {
 ```
 
 **ID Patterns:**
+
 - **`cuidId('id')`** - Use for user-facing resources (posts, profiles, etc.)
   - Non-sequential, URL-safe
   - No enumeration attacks
@@ -80,10 +88,12 @@ export async function createPost(data: NewPost) {
   - Fine for non-exposed resources
 
 **Timestamps:**
+
 - Use `...timestamps` spread for automatic `createdAt` and `updatedAt`
 - `updatedAt` auto-updates on every change
 
 **Benefits:**
+
 - Clear separation of concerns by domain
 - Schemas grouped with related tables
 - Consistent ID and timestamp patterns
@@ -93,6 +103,7 @@ export async function createPost(data: NewPost) {
 ### Server Functions vs Routes
 
 **Server Functions** - Use for UI operations:
+
 ```typescript
 // apps/web/src/apis/my-feature.ts
 export const myAction = createServerFn({ method: 'POST' })
@@ -103,6 +114,7 @@ export const myAction = createServerFn({ method: 'POST' })
 ```
 
 **Server Routes** - Use for webhooks/external callers:
+
 ```typescript
 // apps/web/src/routes/api.webhook.ts
 export const ServerRoute = createServerFileRoute('/api/webhook').methods({
@@ -117,8 +129,8 @@ export const ServerRoute = createServerFileRoute('/api/webhook').methods({
 Always use Drizzle queries through the `db` instance:
 
 ```typescript
-import { db, eq } from '@base/core/drizzle.server';
 import { PostsTable } from '@base/core/business.server/posts/schemas/schema';
+import { db, eq } from '@base/core/drizzle.server';
 
 const post = await db.query.posts.findFirst({
   where: eq(PostsTable.id, postId),
@@ -201,11 +213,13 @@ flowchart LR
 import { cuidId, timestamps } from '~/drizzle.server/types';
 
 export const TasksTable = pgTable('tasks', {
-  id: cuidId('id'),               // User-facing resource
+  id: cuidId('id'), // User-facing resource
   title: text('title').notNull(),
   completed: boolean('completed').default(false),
-  userId: text('user_id').notNull().references(() => UsersTable.id),
-  ...timestamps,                  // Adds createdAt, updatedAt
+  userId: text('user_id')
+    .notNull()
+    .references(() => UsersTable.id),
+  ...timestamps, // Adds createdAt, updatedAt
 });
 
 export type Task = typeof TasksTable.$inferSelect;
@@ -220,6 +234,7 @@ export { TasksTable, type Task, type NewTask } from './tasks.sql';
 ```typescript
 // packages/core/src/business.server/tasks/tasks.ts
 import { db } from '~/drizzle.server';
+
 import { TasksTable, type NewTask } from './schemas/schema';
 
 export async function createTask(data: NewTask) {
@@ -265,6 +280,7 @@ export const addTask = createServerFn({ method: 'POST' })
 ```typescript
 // apps/web/src/routes/tasks.tsx
 import { useMutation } from '@tanstack/react-query';
+
 import { addTask } from '~/apis/tasks';
 
 function Tasks() {

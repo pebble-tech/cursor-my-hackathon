@@ -2,7 +2,6 @@ import { index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 import { UsersTable } from '../../../auth/schema';
 import { cuidId } from '../../../drizzle.server/types';
-
 import { CheckinTypesTable } from './checkin-types.sql';
 
 export const CheckinRecordsTable = pgTable(
@@ -29,4 +28,3 @@ export const CheckinRecordsTable = pgTable(
 
 export type CheckinRecord = typeof CheckinRecordsTable.$inferSelect;
 export type NewCheckinRecord = typeof CheckinRecordsTable.$inferInsert;
-

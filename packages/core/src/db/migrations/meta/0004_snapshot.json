@@ -111,12 +111,8 @@
           "name": "accounts_user_id_users_id_fk",
           "tableFrom": "accounts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -210,12 +206,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -225,9 +217,7 @@
         "sessions_token_unique": {
           "name": "sessions_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -416,9 +406,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -549,12 +537,8 @@
           "name": "checkin_records_checkin_type_id_checkin_types_id_fk",
           "tableFrom": "checkin_records",
           "tableTo": "checkin_types",
-          "columnsFrom": [
-            "checkin_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["checkin_type_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -562,12 +546,8 @@
           "name": "checkin_records_participant_id_users_id_fk",
           "tableFrom": "checkin_records",
           "tableTo": "users",
-          "columnsFrom": [
-            "participant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["participant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -575,12 +555,8 @@
           "name": "checkin_records_checked_in_by_users_id_fk",
           "tableFrom": "checkin_records",
           "tableTo": "users",
-          "columnsFrom": [
-            "checked_in_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["checked_in_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -590,10 +566,7 @@
         "checkin_records_type_participant_unq": {
           "name": "checkin_records_type_participant_unq",
           "nullsNotDistinct": false,
-          "columns": [
-            "checkin_type_id",
-            "participant_id"
-          ]
+          "columns": ["checkin_type_id", "participant_id"]
         }
       },
       "policies": {},
@@ -695,9 +668,7 @@
         "checkin_types_name_unique": {
           "name": "checkin_types_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -815,12 +786,8 @@
           "name": "codes_credit_type_id_credit_types_id_fk",
           "tableFrom": "codes",
           "tableTo": "credit_types",
-          "columnsFrom": [
-            "credit_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["credit_type_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -828,12 +795,8 @@
           "name": "codes_assigned_to_users_id_fk",
           "tableFrom": "codes",
           "tableTo": "users",
-          "columnsFrom": [
-            "assigned_to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_to"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -843,10 +806,7 @@
         "codes_credit_type_code_value_unq": {
           "name": "codes_credit_type_code_value_unq",
           "nullsNotDistinct": false,
-          "columns": [
-            "credit_type_id",
-            "code_value"
-          ]
+          "columns": ["credit_type_id", "code_value"]
         }
       },
       "policies": {},
@@ -960,9 +920,7 @@
         "credit_types_name_unique": {
           "name": "credit_types_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},

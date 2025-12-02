@@ -19,6 +19,7 @@ This phase establishes the foundational database schema and authentication syste
 - Creating a seed script to bootstrap the initial admin user
 
 **Success Criteria:**
+
 - Migrations run successfully on empty database
 - Magic link login flow works end-to-end
 - Google OAuth continues working for admin/ops
@@ -156,7 +157,7 @@ sequenceDiagram
     S->>DB: Query user by participantId
     S->>DB: Query checkin_records for this type + participant
     S-->>UI: Participant info + check-in status for selected type
-    
+
     alt Already checked in
         UI->>O: Show "Already checked in" with timestamp
     else Not checked in
@@ -195,39 +196,39 @@ sequenceDiagram
 
 ### Existing Files to Modify
 
-| File | Purpose |
-|------|---------|
-| `packages/core/src/auth/schema.ts` | Add hackathon-specific columns to UsersTable |
-| `packages/core/src/auth/auth.ts` | Configure magic link plugin, add user additionalFields |
-| `packages/core/src/drizzle.server/index.ts` | Register new schema tables and relations |
-| `packages/core/src/config/env.ts` | Add QR_SECRET_KEY, RESEND_API_KEY |
-| `apps/web/src/utils/auth-client.ts` | Add magicLinkClient plugin |
+| File                                        | Purpose                                                |
+| ------------------------------------------- | ------------------------------------------------------ |
+| `packages/core/src/auth/schema.ts`          | Add hackathon-specific columns to UsersTable           |
+| `packages/core/src/auth/auth.ts`            | Configure magic link plugin, add user additionalFields |
+| `packages/core/src/drizzle.server/index.ts` | Register new schema tables and relations               |
+| `packages/core/src/config/env.ts`           | Add QR_SECRET_KEY, RESEND_API_KEY                      |
+| `apps/web/src/utils/auth-client.ts`         | Add magicLinkClient plugin                             |
 
 ### New Files to Create
 
-| File | Purpose |
-|------|---------|
-| `packages/core/src/business.server/events/schemas/credit-types.sql.ts` | Credit types table definition |
-| `packages/core/src/business.server/events/schemas/codes.sql.ts` | Codes table definition |
-| `packages/core/src/business.server/events/schemas/checkin-types.sql.ts` | Check-in types table definition |
-| `packages/core/src/business.server/events/schemas/checkin-records.sql.ts` | Check-in records table definition |
-| `packages/core/src/business.server/events/schemas/schema.ts` | Schema exports + relations |
-| `packages/core/src/business.server/events/events.ts` | QR generation/verification + business logic |
-| `packages/core/src/email/client.ts` | Resend client setup |
-| `packages/core/src/email/templates/magic-link.ts` | Magic link email template |
-| `packages/core/src/db/seed.ts` | Database seeding script |
+| File                                                                      | Purpose                                     |
+| ------------------------------------------------------------------------- | ------------------------------------------- |
+| `packages/core/src/business.server/events/schemas/credit-types.sql.ts`    | Credit types table definition               |
+| `packages/core/src/business.server/events/schemas/codes.sql.ts`           | Codes table definition                      |
+| `packages/core/src/business.server/events/schemas/checkin-types.sql.ts`   | Check-in types table definition             |
+| `packages/core/src/business.server/events/schemas/checkin-records.sql.ts` | Check-in records table definition           |
+| `packages/core/src/business.server/events/schemas/schema.ts`              | Schema exports + relations                  |
+| `packages/core/src/business.server/events/events.ts`                      | QR generation/verification + business logic |
+| `packages/core/src/email/client.ts`                                       | Resend client setup                         |
+| `packages/core/src/email/templates/magic-link.ts`                         | Magic link email template                   |
+| `packages/core/src/db/seed.ts`                                            | Database seeding script                     |
 
 ---
 
 ## 4. References and Resources
 
-| Resource | URL | Purpose |
-|----------|-----|---------|
-| Better Auth - Magic Link Plugin | https://www.better-auth.com/docs/plugins/magic-link | Magic link configuration |
-| Better Auth - Additional Fields | https://www.better-auth.com/docs/concepts/database#additional-fields | Extending user schema |
-| Drizzle ORM - PostgreSQL | https://orm.drizzle.team/docs/get-started-postgresql | Schema definitions |
-| Resend Node SDK | https://resend.com/docs/send-with-nodejs | Email sending |
-| Node.js Crypto | https://nodejs.org/api/crypto.html | HMAC signature generation |
+| Resource                        | URL                                                                  | Purpose                   |
+| ------------------------------- | -------------------------------------------------------------------- | ------------------------- |
+| Better Auth - Magic Link Plugin | https://www.better-auth.com/docs/plugins/magic-link                  | Magic link configuration  |
+| Better Auth - Additional Fields | https://www.better-auth.com/docs/concepts/database#additional-fields | Extending user schema     |
+| Drizzle ORM - PostgreSQL        | https://orm.drizzle.team/docs/get-started-postgresql                 | Schema definitions        |
+| Resend Node SDK                 | https://resend.com/docs/send-with-nodejs                             | Email sending             |
+| Node.js Crypto                  | https://nodejs.org/api/crypto.html                                   | HMAC signature generation |
 
 ---
 
@@ -272,14 +273,14 @@ sequenceDiagram
 
 **Field Specifications:**
 
-| Field | Type | Default | Input | Description |
-|-------|------|---------|-------|-------------|
-| lumaId | string | null | false | Luma registration ID |
-| participantType | string | "regular" | false | "regular" or "vip" |
-| status | string | "registered" | false | "registered" or "checked_in" |
-| checkedInAt | date | null | false | Check-in timestamp |
-| checkedInBy | string | null | false | User ID of ops who processed |
-| qrCodeValue | string | null | false | HMAC-signed QR payload |
+| Field           | Type   | Default      | Input | Description                  |
+| --------------- | ------ | ------------ | ----- | ---------------------------- |
+| lumaId          | string | null         | false | Luma registration ID         |
+| participantType | string | "regular"    | false | "regular" or "vip"           |
+| status          | string | "registered" | false | "registered" or "checked_in" |
+| checkedInAt     | date   | null         | false | Check-in timestamp           |
+| checkedInBy     | string | null         | false | User ID of ops who processed |
+| qrCodeValue     | string | null         | false | HMAC-signed QR payload       |
 
 ### Task B.2: Create Credit Types Table
 
@@ -319,14 +320,14 @@ sequenceDiagram
 
 **Field Specifications:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | cuid | yes | Primary key |
-| name | text | yes | Unique name (e.g., "Day 1 Attendance") |
-| type | enum | yes | 'attendance' or 'meal' |
-| description | text | no | Instructions shown to ops |
-| displayOrder | int | yes | Order in ops UI |
-| isActive | boolean | yes | Can disable without deleting |
+| Field        | Type    | Required | Description                            |
+| ------------ | ------- | -------- | -------------------------------------- |
+| id           | cuid    | yes      | Primary key                            |
+| name         | text    | yes      | Unique name (e.g., "Day 1 Attendance") |
+| type         | enum    | yes      | 'attendance' or 'meal'                 |
+| description  | text    | no       | Instructions shown to ops              |
+| displayOrder | int     | yes      | Order in ops UI                        |
+| isActive     | boolean | yes      | Can disable without deleting           |
 
 ### Task B.5: Create Check-in Records Table
 
@@ -474,7 +475,7 @@ sequenceDiagram
 ## Dependencies
 
 ```
-Phase A (Environment) 
+Phase A (Environment)
     └── Phase B (Schema) - needs env vars for migration
             └── Phase C (Auth) - needs schema for magic link
             └── Phase D (QR Utils) - needs env vars for secret key
@@ -486,20 +487,24 @@ Phase A (Environment)
 ## 6. Potential Risks / Edge Cases
 
 ### Schema Migration Risks
+
 - **Enum type changes:** If `role` column needs to change from text to enum in future, requires careful migration
 - **Foreign key ordering:** Tables must be created in correct order (users before codes, credit_types before codes)
 
 ### Authentication Edge Cases
+
 - **VIP login attempts:** VIPs will receive a clear error message, not a generic "email not found"
 - **Rate limiting:** Magic link requests should be rate-limited (Better Auth default: 5 per 15 min)
 - **Token expiry:** Users clicking expired links should get clear error with option to request new link
 - **Email delivery failures:** Log failures for admin review; user should be able to retry
 
 ### QR Code Security
+
 - **Secret key rotation:** If QR_SECRET_KEY changes, all existing QR codes become invalid
 - **Replay attacks:** QR codes are permanent by design; duplicate prevention is handled at check-in time, not in QR validation
 
 ### Database Constraints
+
 - **Unique email:** Import process must handle duplicate emails gracefully
 - **Check-in duplicates:** Unique constraint on (checkinTypeId, participantId) will throw on duplicate; catch and return friendly error
 
@@ -508,11 +513,13 @@ Phase A (Environment)
 ## 7. Testing Checklist
 
 ### Environment Setup
+
 - [ ] All new environment variables are documented in .env.example
 - [ ] Application starts without errors with new env vars set
 - [ ] Application fails gracefully with clear error if env vars missing
 
 ### Database Schema
+
 - [ ] Migration runs successfully on fresh database
 - [ ] All tables created with correct columns and types
 - [ ] Foreign key relationships work (insert/delete cascade)
@@ -520,6 +527,7 @@ Phase A (Environment)
 - [ ] Indexes are created for performance-critical columns
 
 ### Magic Link Authentication
+
 - [ ] User can request magic link with registered email
 - [ ] User sees error for unregistered email
 - [ ] VIP user sees specific error message (not generic)
@@ -530,16 +538,19 @@ Phase A (Environment)
 - [ ] Session persists for 7 days
 
 ### Google OAuth (Existing)
+
 - [ ] Google OAuth still works for admin/ops users
 - [ ] Session handling consistent between magic link and OAuth
 
 ### QR Code Utilities
+
 - [ ] generateQRCodeValue produces consistent output for same participantId
 - [ ] verifyQRCodeValue correctly validates genuine QR codes
 - [ ] verifyQRCodeValue rejects tampered signatures
 - [ ] verifyQRCodeValue rejects malformed/invalid input
 
 ### Database Seeding
+
 - [ ] Seed script creates initial admin user
 - [ ] Admin user has correct role and fields
 - [ ] Admin user has QR code generated
@@ -551,16 +562,20 @@ Phase A (Environment)
 ## 8. Notes
 
 ### Email Sender Configuration
+
 - Sender address: `noreply@cursorhackathon.pebbletech.my`
 - Requires domain verification in Resend dashboard before emails will deliver
 
 ### Better Auth Additional Fields Pattern
+
 The `additionalFields` approach in Better Auth config is preferred over modifying the schema directly because:
+
 1. Fields are automatically typed in session/user objects
 2. `input: false` prevents users from setting server-controlled fields during signup
 3. Default values are handled consistently
 
 ### QR Code Payload Format
+
 ```json
 {
   "participantId": "cuid_xxx",
@@ -568,10 +583,13 @@ The `additionalFields` approach in Better Auth config is preferred over modifyin
   "signature": "hmac_sha256_hex_string"
 }
 ```
+
 Encoded as base64url for compact QR representation.
 
 ### Initial Admin Bootstrap
+
 The seed script should be run once during initial deployment:
+
 ```bash
 pnpm db:migrate  # Apply schema
 pnpm db:seed     # Create initial admin
@@ -585,13 +603,13 @@ The check-in system is flexible and admin-configurable:
 
 **Check-in Types (seeded by admin):**
 
-| name | type | display_order |
-|------|------|---------------|
-| Day 1 Attendance | attendance | 1 |
-| Day 1 Lunch | meal | 2 |
-| Day 1 Dinner | meal | 3 |
-| Day 2 Attendance | attendance | 4 |
-| Day 2 Breakfast | meal | 5 |
+| name             | type       | display_order |
+| ---------------- | ---------- | ------------- |
+| Day 1 Attendance | attendance | 1             |
+| Day 1 Lunch      | meal       | 2             |
+| Day 1 Dinner     | meal       | 3             |
+| Day 2 Attendance | attendance | 4             |
+| Day 2 Breakfast  | meal       | 5             |
 
 **Two Ops Flows:**
 
@@ -607,4 +625,3 @@ The check-in system is flexible and admin-configurable:
    - Shows participant info + ALL check-in types
    - Each type shows checkmark if completed
    - Read-only view for status checking
-

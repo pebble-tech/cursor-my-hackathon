@@ -23,6 +23,7 @@ The project uses PNPM workspaces to manage multiple packages:
 ### Tech Stack Details
 
 #### Frontend Stack
+
 - **React 19**: Latest React with improved concurrent rendering
 - **TanStack Start**: Full-stack React framework with SSR/SSG
 - **TanStack Query**: Server state management with caching
@@ -30,6 +31,7 @@ The project uses PNPM workspaces to manage multiple packages:
 - **Shadcn UI**: Accessible, customizable component library
 
 #### Backend Stack
+
 - **Better Auth**: Modern authentication library
 - **Drizzle ORM**: TypeScript-first ORM
 - **PostgreSQL**: Primary database
@@ -40,12 +42,14 @@ The project uses PNPM workspaces to manage multiple packages:
 #### Server Functions vs Server Routes
 
 **Server Functions** (`createServerFn`)
+
 - Use for: UI-triggered operations, internal RPC calls
 - Characteristics: No stable URL, accessed from components/hooks
 - Security: Internal only, not exposed externally
 - Example: Form submissions, data fetching from UI
 
 **Server Routes** (`createServerFileRoute`)
+
 - Use for: Webhooks, cron jobs, external integrations
 - Characteristics: Stable public URLs, dedicated endpoints
 - Security: Implement authentication/rate limiting
@@ -67,6 +71,7 @@ flowchart TD
 #### Database Schema
 
 The base template includes minimal auth tables:
+
 - `users`: User accounts
 - `sessions`: Active sessions
 - `accounts`: OAuth provider accounts
@@ -77,10 +82,10 @@ Extend by adding your own tables in `packages/core/src/db/`.
 #### AI Provider Integration
 
 The AI provider facade (`packages/core/src/providers/ai/`) wraps the Vercel AI SDK to:
+
 - Standardize model access across providers
 - Enable quick provider switching
 - Centralize configuration
 - Type-safe API calls
 
 See [architecture.md](./architecture.md) and [deployment.md](./deployment.md) for detailed guides.
-

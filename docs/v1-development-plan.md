@@ -77,6 +77,7 @@
   - [x] `RESEND_API_KEY`
 
 ### Deliverable
+
 - ✅ Migrations generated (pending review/application)
 - ✅ Magic link login flow configured
 - ✅ QR code generation utility implemented
@@ -134,6 +135,7 @@
   - [ ] Track sent status per user
 
 ### Deliverable
+
 - Users can login via magic link or Google OAuth
 - Admin can import 1000 participants from Luma CSV
 - Admin can manually add VIPs, ops, and admin accounts
@@ -180,6 +182,7 @@
   - [ ] Filter by status (all/redeemed/pending)
 
 ### Deliverable
+
 - Participants can see their QR code
 - View and copy credit codes after check-in
 
@@ -220,6 +223,7 @@
   - [ ] Visual indicator (green/yellow/red)
 
 ### Deliverable
+
 - Admin can create 6 credit types (Cursor, Anthropic, etc.)
 - Admin can import codes for each type
 - Pool status visible
@@ -282,6 +286,7 @@
   - [ ] Different success message (no codes)
 
 ### Deliverable
+
 - Ops can scan QR codes
 - Participants checked in with codes assigned
 - Real-time feedback and counters
@@ -329,6 +334,7 @@
   - [ ] Clear error message
 
 ### Deliverable
+
 - Ops can select check-in type and process check-ins
 - Check Guest Status shows all check-in statuses
 - Duplicates rejected with clear message
@@ -374,6 +380,7 @@
   - [ ] Embed as inline image in email
 
 ### Deliverable
+
 - All email types working
 - Proper templates with branding
 - QR codes embedded in emails
@@ -426,6 +433,7 @@
   - [ ] Scanner optimized for tablet
 
 ### Deliverable
+
 - Complete admin visibility
 - Backup manual operations
 - Polish and edge cases handled
@@ -469,16 +477,16 @@
 
 ## Testing Checkpoints
 
-| After Phase | Test Scenario |
-|-------------|---------------|
-| 1 | Run migrations, test magic link login flow |
-| 2 | Import 10 test users from CSV, verify QR generated |
-| 3 | Login as participant, view QR, test copy button |
-| 4 | Create credit type, import 10 codes |
-| 5 | Full check-in: scan → status update → codes assigned |
-| 6 | Check-in type selection, check-in scan, duplicate rejection |
-| 7 | Receive all email types in inbox |
-| 8 | End-to-end with 100+ test users, stress test scanner |
+| After Phase | Test Scenario                                               |
+| ----------- | ----------------------------------------------------------- |
+| 1           | Run migrations, test magic link login flow                  |
+| 2           | Import 10 test users from CSV, verify QR generated          |
+| 3           | Login as participant, view QR, test copy button             |
+| 4           | Create credit type, import 10 codes                         |
+| 5           | Full check-in: scan → status update → codes assigned        |
+| 6           | Check-in type selection, check-in scan, duplicate rejection |
+| 7           | Receive all email types in inbox                            |
+| 8           | End-to-end with 100+ test users, stress test scanner        |
 
 ---
 
@@ -499,11 +507,10 @@
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|------|------------|
-| Scanner camera issues | Manual lookup by email in admin |
-| Code pool exhaustion | Monitor in admin dashboard, have backup codes |
-| Email delivery delays | QR visible in dashboard, don't rely solely on email |
-| Network issues at venue | Test on venue WiFi before event |
-| Concurrent scan conflicts | Row-level locking in PostgreSQL |
-
+| Risk                      | Mitigation                                          |
+| ------------------------- | --------------------------------------------------- |
+| Scanner camera issues     | Manual lookup by email in admin                     |
+| Code pool exhaustion      | Monitor in admin dashboard, have backup codes       |
+| Email delivery delays     | QR visible in dashboard, don't rely solely on email |
+| Network issues at venue   | Test on venue WiFi before event                     |
+| Concurrent scan conflicts | Row-level locking in PostgreSQL                     |

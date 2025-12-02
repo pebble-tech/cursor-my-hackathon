@@ -8,14 +8,10 @@ type QRPayload = {
   signature: string;
 };
 
-type VerifyResult =
-  | { valid: true; participantId: string }
-  | { valid: false; error: string };
+type VerifyResult = { valid: true; participantId: string } | { valid: false; error: string };
 
 function createSignature(participantId: string): string {
-  return createHmac('sha256', env.QR_SECRET_KEY)
-    .update(`${participantId}:permanent`)
-    .digest('hex');
+  return createHmac('sha256', env.QR_SECRET_KEY).update(`${participantId}:permanent`).digest('hex');
 }
 
 function base64UrlEncode(data: string): string {
@@ -79,4 +75,3 @@ export function verifyQRCodeValue(qrValue: string): VerifyResult {
     return { valid: false, error: 'Failed to decode QR value' };
   }
 }
-

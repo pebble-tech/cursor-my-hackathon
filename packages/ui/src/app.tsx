@@ -2,15 +2,23 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { Button } from '~/components/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '~/components/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '~/components/dialog';
 import { Input } from '~/components/input';
+
 import './tailwind.css';
 
 function App() {
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8 p-8">
       <h1 className="text-4xl font-bold">Base UI Components</h1>
-      
+
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold">Button</h2>
         <div className="flex gap-4">
@@ -56,4 +64,3 @@ if (root) {
     </StrictMode>
   );
 }
-

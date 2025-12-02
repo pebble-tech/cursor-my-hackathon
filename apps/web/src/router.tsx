@@ -27,4 +27,3 @@ declare module '@tanstack/react-router' {
     router: ReturnType<typeof createRouter>;
   }
 }
-

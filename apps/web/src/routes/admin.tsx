@@ -1,7 +1,8 @@
-import { UserRoleEnum } from '@base/core/config/constant';
-import { Button } from '@base/ui/components/button';
 import { Link, Outlet, createFileRoute, redirect } from '@tanstack/react-router';
 import { LogOut, Users } from 'lucide-react';
+
+import { UserRoleEnum } from '@base/core/config/constant';
+import { Button } from '@base/ui/components/button';
 
 import { getServerSession } from '~/apis/auth';
 import { authClient } from '~/utils/auth-client';

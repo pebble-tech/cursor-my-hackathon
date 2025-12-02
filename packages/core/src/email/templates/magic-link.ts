@@ -64,4 +64,3 @@ If you didn't request this email, you can safely ignore it.`;
     text,
   });
 }
-

@@ -12,9 +12,7 @@ type SendEmailParams = {
   text?: string;
 };
 
-type SendEmailResult =
-  | { success: true; messageId: string }
-  | { success: false; error: string };
+type SendEmailResult = { success: true; messageId: string } | { success: false; error: string };
 
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   try {
@@ -39,4 +37,3 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     return { success: false, error: errorMessage };
   }
 }
-

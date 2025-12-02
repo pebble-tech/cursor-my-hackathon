@@ -1,5 +1,6 @@
-import { auth } from '@base/core/auth/auth';
 import { createServerFileRoute } from '@tanstack/react-start/server';
+
+import { auth } from '@base/core/auth/auth';
 
 export const ServerRoute = createServerFileRoute('/api/auth/$').methods({
   GET: async ({ request }) => {
@@ -9,4 +10,3 @@ export const ServerRoute = createServerFileRoute('/api/auth/$').methods({
     return auth.handler(request);
   },
 });
-

@@ -1,16 +1,15 @@
 import { relations } from 'drizzle-orm';
 
 import { UsersTable } from '../../../auth/schema';
-
 import { CheckinRecordsTable, type CheckinRecord, type NewCheckinRecord } from './checkin-records.sql';
 import {
-  CheckinTypesTable,
   CHECKIN_TYPE,
+  CheckinTypesTable,
   type CheckinType,
-  type NewCheckinType,
   type CheckinTypeCategory,
+  type NewCheckinType,
 } from './checkin-types.sql';
-import { CodesTable, CODE_STATUS, type Code, type NewCode, type CodeStatus } from './codes.sql';
+import { CODE_STATUS, CodesTable, type Code, type CodeStatus, type NewCode } from './codes.sql';
 import { CreditTypesTable, type CreditType, type NewCreditType } from './credit-types.sql';
 
 export const usersRelations = relations(UsersTable, ({ many, one }) => ({
@@ -63,11 +62,5 @@ export const checkinRecordsRelations = relations(CheckinRecordsTable, ({ one }) 
 
 export { CreditTypesTable, type CreditType, type NewCreditType };
 export { CodesTable, CODE_STATUS, type Code, type NewCode, type CodeStatus };
-export {
-  CheckinTypesTable,
-  CHECKIN_TYPE,
-  type CheckinType,
-  type NewCheckinType,
-  type CheckinTypeCategory,
-};
+export { CheckinTypesTable, CHECKIN_TYPE, type CheckinType, type NewCheckinType, type CheckinTypeCategory };
 export { CheckinRecordsTable, type CheckinRecord, type NewCheckinRecord };

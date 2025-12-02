@@ -23,4 +23,3 @@ export const CreditTypesTable = pgTable(
 
 export type CreditType = typeof CreditTypesTable.$inferSelect;
 export type NewCreditType = typeof CreditTypesTable.$inferInsert;
-

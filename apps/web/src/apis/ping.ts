@@ -37,4 +37,3 @@ export const updateCountMutationOptions = () =>
       queryClient.invalidateQueries({ queryKey: ['count'] });
     },
   });
-

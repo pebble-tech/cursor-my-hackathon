@@ -19,6 +19,7 @@ This phase implements the admin functionality for importing and managing partici
 - **Welcome Email Trigger**: Batch send welcome emails (different content for regular vs VIP)
 
 **Success Criteria:**
+
 - Users can login via magic link (participants) or Google OAuth (ops/admin)
 - Admin can import 1000 participants from Luma CSV
 - Partial imports work with detailed skip reporting
@@ -44,7 +45,7 @@ flowchart TD
     G -->|Yes, VIP| I[Show error: VIPs cannot login]
     G -->|Yes, regular| J[Send magic link email]
     J --> K[Show success: Check email]
-    
+
     E -->|Click Google OAuth| L[Redirect to Google]
     L --> M[Google auth callback]
     M --> N{User exists?}
@@ -70,7 +71,7 @@ sequenceDiagram
     A->>DB: Validate session
     DB-->>A: Session + User
     A-->>R: User with role
-    
+
     alt User role is admin
         R-->>U: Render admin page
     else User role is not admin
@@ -139,50 +140,50 @@ flowchart TD
 
 ### Existing Files to Reference
 
-| File | Purpose |
-|------|---------|
-| `packages/core/src/auth/schema.ts` | UsersTable definition with all participant fields |
-| `packages/core/src/auth/auth.ts` | Better Auth config with magic link |
-| `packages/core/src/business.server/events/events.ts` | QR code generation utilities |
-| `packages/core/src/drizzle.server/index.ts` | Database client and schema exports |
-| `packages/core/src/email/client.ts` | Resend email client |
-| `packages/core/src/email/templates/magic-link.ts` | Email template pattern reference |
-| `packages/core/src/config/constant.ts` | Role, status, type constants |
-| `apps/web/src/routes/__root.tsx` | Root route pattern |
-| `apps/web/src/apis/ping.ts` | Server function pattern reference |
-| `apps/web/src/utils/auth-client.ts` | Auth client setup |
+| File                                                 | Purpose                                           |
+| ---------------------------------------------------- | ------------------------------------------------- |
+| `packages/core/src/auth/schema.ts`                   | UsersTable definition with all participant fields |
+| `packages/core/src/auth/auth.ts`                     | Better Auth config with magic link                |
+| `packages/core/src/business.server/events/events.ts` | QR code generation utilities                      |
+| `packages/core/src/drizzle.server/index.ts`          | Database client and schema exports                |
+| `packages/core/src/email/client.ts`                  | Resend email client                               |
+| `packages/core/src/email/templates/magic-link.ts`    | Email template pattern reference                  |
+| `packages/core/src/config/constant.ts`               | Role, status, type constants                      |
+| `apps/web/src/routes/__root.tsx`                     | Root route pattern                                |
+| `apps/web/src/apis/ping.ts`                          | Server function pattern reference                 |
+| `apps/web/src/utils/auth-client.ts`                  | Auth client setup                                 |
 
 ### New Files to Create
 
-| File | Purpose |
-|------|---------|
-| `apps/web/src/routes/login.tsx` | Login page with magic link and Google OAuth |
-| `apps/web/src/apis/auth.ts` | Auth server functions (getSession, etc.) |
-| `apps/web/src/routes/admin.tsx` | Admin layout route with role guard |
-| `apps/web/src/routes/admin/index.tsx` | Admin dashboard index (redirect to participants) |
-| `apps/web/src/routes/admin/participants.tsx` | Participant list page |
-| `apps/web/src/apis/admin/participants.ts` | Server functions for participant CRUD |
-| `apps/web/src/apis/admin/emails.ts` | Server functions for welcome emails |
-| `packages/core/src/email/templates/welcome.ts` | Welcome email template (regular participants) |
-| `packages/core/src/email/templates/welcome-vip.ts` | VIP welcome email template with QR |
-| `packages/ui/src/components/data-table.tsx` | Reusable data table component |
-| `packages/ui/src/components/file-upload.tsx` | Drag-drop file upload component |
+| File                                               | Purpose                                          |
+| -------------------------------------------------- | ------------------------------------------------ |
+| `apps/web/src/routes/login.tsx`                    | Login page with magic link and Google OAuth      |
+| `apps/web/src/apis/auth.ts`                        | Auth server functions (getSession, etc.)         |
+| `apps/web/src/routes/admin.tsx`                    | Admin layout route with role guard               |
+| `apps/web/src/routes/admin/index.tsx`              | Admin dashboard index (redirect to participants) |
+| `apps/web/src/routes/admin/participants.tsx`       | Participant list page                            |
+| `apps/web/src/apis/admin/participants.ts`          | Server functions for participant CRUD            |
+| `apps/web/src/apis/admin/emails.ts`                | Server functions for welcome emails              |
+| `packages/core/src/email/templates/welcome.ts`     | Welcome email template (regular participants)    |
+| `packages/core/src/email/templates/welcome-vip.ts` | VIP welcome email template with QR               |
+| `packages/ui/src/components/data-table.tsx`        | Reusable data table component                    |
+| `packages/ui/src/components/file-upload.tsx`       | Drag-drop file upload component                  |
 
 ---
 
 ## 4. References and Resources
 
-| Resource | URL | Purpose |
-|----------|-----|---------|
-| Better Auth - Magic Link | https://www.better-auth.com/docs/plugins/magic-link | Magic link client usage |
-| Better Auth - Social Sign-in | https://www.better-auth.com/docs/authentication/social-sign-in | Google OAuth integration |
-| TanStack Start - File Routing | https://tanstack.com/start/latest/docs/framework/react/guide/routing | Route file conventions |
-| TanStack Start - beforeLoad | https://tanstack.com/start/latest/docs/framework/react/guide/authentication | Route protection pattern |
-| TanStack Start - Server Functions | https://tanstack.com/start/latest/docs/framework/react/guide/server-functions | Server function patterns |
-| TanStack Query - Mutations | https://tanstack.com/query/latest/docs/framework/react/guides/mutations | Mutation patterns |
-| Drizzle ORM - Insert | https://orm.drizzle.team/docs/insert | Bulk insert patterns |
-| Shadcn UI - Data Table | https://ui.shadcn.com/docs/components/data-table | Table component reference |
-| Papaparse | https://www.papaparse.com/ | CSV parsing library |
+| Resource                          | URL                                                                           | Purpose                   |
+| --------------------------------- | ----------------------------------------------------------------------------- | ------------------------- |
+| Better Auth - Magic Link          | https://www.better-auth.com/docs/plugins/magic-link                           | Magic link client usage   |
+| Better Auth - Social Sign-in      | https://www.better-auth.com/docs/authentication/social-sign-in                | Google OAuth integration  |
+| TanStack Start - File Routing     | https://tanstack.com/start/latest/docs/framework/react/guide/routing          | Route file conventions    |
+| TanStack Start - beforeLoad       | https://tanstack.com/start/latest/docs/framework/react/guide/authentication   | Route protection pattern  |
+| TanStack Start - Server Functions | https://tanstack.com/start/latest/docs/framework/react/guide/server-functions | Server function patterns  |
+| TanStack Query - Mutations        | https://tanstack.com/query/latest/docs/framework/react/guides/mutations       | Mutation patterns         |
+| Drizzle ORM - Insert              | https://orm.drizzle.team/docs/insert                                          | Bulk insert patterns      |
+| Shadcn UI - Data Table            | https://ui.shadcn.com/docs/components/data-table                              | Table component reference |
+| Papaparse                         | https://www.papaparse.com/                                                    | CSV parsing library       |
 
 ---
 
@@ -488,26 +489,31 @@ Phase E requires Phase D and potentially a schema migration for `welcomeEmailSen
 ## 6. Potential Risks / Edge Cases
 
 ### CSV Import Risks
+
 - **Large file handling**: 1000+ row CSV should be processed server-side in chunks if needed
 - **Encoding issues**: CSV may have UTF-8 BOM or different encodings; Papaparse handles most cases
 - **Malformed rows**: Rows with wrong column count should be skipped with clear error message
 - **Email normalization**: Consider lowercasing emails before duplicate check
 
 ### Database Constraints
+
 - **Unique email violation**: Handle gracefully, add to skipped list
 - **Transaction size**: For 1000 inserts, consider batching in groups of 100
 - **QR code generation**: Synchronous generation for each user; should be fast but monitor
 
 ### Authentication Edge Cases
+
 - **Session expiry during import**: Long imports should not be interrupted by session timeout
 - **Concurrent admin access**: Two admins importing simultaneously should not create duplicates (email unique constraint handles this)
 
 ### Email Delivery
+
 - **Rate limiting**: Resend has rate limits; may need to batch email sending with delays
 - **Failed deliveries**: Track failures, allow retry mechanism
 - **Large batch**: 1000 emails should be sent with progress tracking
 
 ### UI/UX Considerations
+
 - **Import preview**: Don't load entire CSV into browser memory for preview; show first 10 rows
 - **Download skipped rows**: Generate CSV client-side from returned skip data
 - **Loading states**: All async operations need clear loading indicators
@@ -517,6 +523,7 @@ Phase E requires Phase D and potentially a schema migration for `welcomeEmailSen
 ## 7. Testing Checklist
 
 ### Login Page
+
 - [ ] Login page loads at `/login`
 - [ ] Authenticated user redirected away from login page
 - [ ] Magic link: valid email shows "Check your email" message
@@ -530,12 +537,14 @@ Phase E requires Phase D and potentially a schema migration for `welcomeEmailSen
 - [ ] Post-login: participant redirected appropriately (or `/` for now)
 
 ### Admin Route Protection
+
 - [ ] Non-authenticated user redirected to login page
 - [ ] Authenticated non-admin user redirected to home page
 - [ ] Authenticated admin user can access admin routes
 - [ ] Admin context (user data) available in child routes
 
 ### CSV Import
+
 - [ ] Valid CSV with 10 rows imports all 10 participants
 - [ ] CSV with 5 duplicate emails imports 5, skips 5 with reasons
 - [ ] CSV with missing email column shows format error
@@ -547,6 +556,7 @@ Phase E requires Phase D and potentially a schema migration for `welcomeEmailSen
 - [ ] Skipped rows CSV downloadable with correct data
 
 ### Manual User Creation
+
 - [ ] Creating VIP sets participantType to 'vip' and role to 'participant'
 - [ ] Creating Ops sets role to 'ops' and participantType to 'regular'
 - [ ] Creating Admin sets role to 'admin' and participantType to 'regular'
@@ -555,6 +565,7 @@ Phase E requires Phase D and potentially a schema migration for `welcomeEmailSen
 - [ ] User appears in participant list after creation
 
 ### Participant List
+
 - [ ] List loads with default pagination (page 1, 20 per page)
 - [ ] Filtering by status shows only matching users
 - [ ] Filtering by participant type shows only matching users
@@ -565,6 +576,7 @@ Phase E requires Phase D and potentially a schema migration for `welcomeEmailSen
 - [ ] Correct total count displayed
 
 ### Welcome Emails
+
 - [ ] "Send Welcome Emails" shows count of unsent
 - [ ] Regular participant receives welcome email with platform URL
 - [ ] VIP receives welcome email with QR code image embedded
@@ -580,14 +592,15 @@ Phase E requires Phase D and potentially a schema migration for `welcomeEmailSen
 
 The login page serves all user types with appropriate auth methods:
 
-| User Type | Auth Method | Post-Login Redirect |
-|-----------|-------------|---------------------|
-| Participant (regular) | Magic Link | `/dashboard` (Phase 3) |
-| VIP | Cannot login | N/A |
-| Ops | Magic Link | `/ops` (Phase 5) |
-| Admin | Google OAuth | `/admin` |
+| User Type             | Auth Method  | Post-Login Redirect    |
+| --------------------- | ------------ | ---------------------- |
+| Participant (regular) | Magic Link   | `/dashboard` (Phase 3) |
+| VIP                   | Cannot login | N/A                    |
+| Ops                   | Magic Link   | `/ops` (Phase 5)       |
+| Admin                 | Google OAuth | `/admin`               |
 
 **UI Layout:**
+
 ```
 ┌─────────────────────────────────────┐
 │         Hackathon Platform          │
@@ -614,6 +627,7 @@ The login page serves all user types with appropriate auth methods:
 ### CSV Format from Luma
 
 Expected format (additional columns ignored):
+
 ```csv
 email,name,luma_id
 john@example.com,John Doe,luma_abc123
@@ -624,11 +638,11 @@ Column order must match. Header row required.
 
 ### User Type Mapping
 
-| UI Selection | `role` | `participantType` | Can Login |
-|--------------|--------|-------------------|-----------|
-| VIP | participant | vip | No |
-| Ops | ops | regular | Yes (magic link) |
-| Admin | admin | regular | Yes (Google OAuth) |
+| UI Selection | `role`      | `participantType` | Can Login          |
+| ------------ | ----------- | ----------------- | ------------------ |
+| VIP          | participant | vip               | No                 |
+| Ops          | ops         | regular           | Yes (magic link)   |
+| Admin        | admin       | regular           | Yes (Google OAuth) |
 
 ### Email Tracking Field
 
@@ -657,4 +671,3 @@ Update schema in `packages/core/src/auth/schema.ts` and generate migration.
     ├── /admin/checkin-types
     └── /admin/dashboard
 ```
-
