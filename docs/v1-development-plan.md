@@ -13,7 +13,7 @@
 │                         DEVELOPMENT PHASES                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  Phase 1: Schema & Auth ─────┬──► Phase 2: Admin Import                     │
+│  Phase 1: Schema & Auth ✅ ──┬──► Phase 2: Admin Import ✅                   │
 │                              │                 │                             │
 │                              │                 ├──► Phase 3: Participant UI  │
 │                              │                 │                             │
@@ -25,12 +25,13 @@
 │                              │         ┌─────────────────┴─────────────────┐ │
 │                              │         │                                   │ │
 │                              │         ▼                                   ▼ │
-│                              │  Phase 6: Check-in System    Phase 7: Email   │
+│                              │  Phase 6: Check-in System    Phase 7: Email~  │
 │                              │         │                                   │ │
 │                              │         └─────────────────┬─────────────────┘ │
 │                              │                           ▼                   │
 │                              │              Phase 8: Admin Dashboard         │
 │                              │                                               │
+│  ✅ = Complete    ~ = Partial                                                │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -59,7 +60,7 @@
 
 - [x] 1.3 Generate and run migrations
   - [x] `pnpm db:generate`
-  - [ ] `pnpm db:migrate` (pending user review/application)
+  - [x] `pnpm db:migrate`
 
 - [x] 1.4 Configure Better Auth with magic link plugin
   - [x] Add `magicLink` plugin to `auth.ts`
@@ -78,7 +79,7 @@
 
 ### Deliverable
 
-- ✅ Migrations generated (pending review/application)
+- ✅ Migrations generated and applied
 - ✅ Magic link login flow configured
 - ✅ QR code generation utility implemented
 - ✅ Email client and templates created
@@ -88,59 +89,59 @@
 
 ## Phase 2: Admin - Participant Import
 
-**Status:** Not Started  
+**Status:** ✅ Completed  
 **Priority:** Critical  
 **Estimated Effort:** 1 day  
 **Dependencies:** Phase 1
 
 ### Tasks
 
-- [ ] 2.0 Login page
-  - [ ] `/login` route with magic link + Google OAuth
-  - [ ] Magic link for participants and ops
-  - [ ] Google OAuth for admin
-  - [ ] Post-login redirect based on role
-  - [ ] Error handling for unregistered/VIP users
+- [x] 2.0 Login page
+  - [x] `/login` route with magic link + Google OAuth
+  - [x] Magic link for participants and ops
+  - [x] Google OAuth for admin
+  - [x] Post-login redirect based on role
+  - [x] Error handling for unregistered/VIP users
 
-- [ ] 2.1 Create admin route layout with role guard
-  - [ ] `apps/web/src/routes/admin/` directory
-  - [ ] Role check middleware (redirect if not admin)
+- [x] 2.1 Create admin route layout with role guard
+  - [x] `apps/web/src/routes/admin/` directory
+  - [x] Role check middleware (redirect if not admin)
 
-- [ ] 2.2 CSV upload component
-  - [ ] File input with drag-drop
-  - [ ] Preview parsed data
+- [x] 2.2 CSV upload component
+  - [x] File input with drag-drop
+  - [x] Preview parsed data
 
-- [ ] 2.3 Participant import server function
-  - [ ] Parse CSV (email, name, luma_id)
-  - [ ] Validate format and duplicates
-  - [ ] Bulk create users with `status: 'registered'`
-  - [ ] Auto-generate QR code on creation
-  - [ ] Return skipped rows with reasons
+- [x] 2.3 Participant import server function
+  - [x] Parse CSV (email, name, luma_id)
+  - [x] Validate format and duplicates
+  - [x] Bulk create users with `status: 'registered'`
+  - [x] Auto-generate QR code on creation
+  - [x] Return skipped rows with reasons
 
-- [ ] 2.4 Manual user creation form
-  - [ ] Name + email input
-  - [ ] Type selector: VIP | Ops | Admin
-  - [ ] VIP: `participantType: 'vip'`, cannot login
-  - [ ] Ops/Admin: set role accordingly
+- [x] 2.4 Manual user creation form
+  - [x] Name + email input
+  - [x] Type selector: VIP | Ops | Admin
+  - [x] VIP: `participantType: 'vip'`, cannot login
+  - [x] Ops/Admin: set role accordingly
 
-- [ ] 2.5 Participant list view
-  - [ ] Server-side paginated table
-  - [ ] Filter by status, type, role
-  - [ ] Search by name/email
-  - [ ] Status badge (registered/checked_in)
+- [x] 2.5 Participant list view
+  - [x] Server-side paginated table
+  - [x] Filter by status, type, role
+  - [x] Search by name/email
+  - [x] Status badge (registered/checked_in)
 
-- [ ] 2.6 Welcome email trigger
-  - [ ] "Send Welcome Emails" button
-  - [ ] Different content for regular vs VIP
-  - [ ] Track sent status per user
+- [x] 2.6 Welcome email trigger
+  - [x] "Send Welcome Emails" button
+  - [x] Different content for regular vs VIP (VIP includes QR code image)
+  - [x] Track sent status per user (`welcomeEmailSentAt` field)
 
 ### Deliverable
 
-- Users can login via magic link or Google OAuth
-- Admin can import 1000 participants from Luma CSV
-- Admin can manually add VIPs, ops, and admin accounts
-- QR codes auto-generated for all users
-- Welcome emails can be batch-sent
+- ✅ Users can login via magic link or Google OAuth
+- ✅ Admin can import 1000 participants from Luma CSV
+- ✅ Admin can manually add VIPs, ops, and admin accounts
+- ✅ QR codes auto-generated for all users
+- ✅ Welcome emails can be batch-sent
 
 ---
 
@@ -343,26 +344,26 @@
 
 ## Phase 7: Email Integration
 
-**Status:** Not Started  
+**Status:** Partially Complete  
 **Priority:** High  
 **Estimated Effort:** 1 day  
 **Dependencies:** Phase 1
 
 ### Tasks
 
-- [ ] 7.1 Resend client setup
-  - [ ] `packages/core/src/email/client.ts`
-  - [ ] Configure API key
+- [x] 7.1 Resend client setup
+  - [x] `packages/core/src/email/client.ts`
+  - [x] Configure API key
 
-- [ ] 7.2 Magic link email template
-  - [ ] HTML template (mobile-responsive)
-  - [ ] Subject: "Login to Hackathon Dashboard"
-  - [ ] Link button with 1-hour expiry note
+- [x] 7.2 Magic link email template
+  - [x] HTML template (mobile-responsive)
+  - [x] Subject: "Sign in to Cursor Hackathon"
+  - [x] Link button with 1-hour expiry note
 
-- [ ] 7.3 Welcome email template
-  - [ ] Subject: "Welcome to Cursor x Anthropic MY Hackathon!"
-  - [ ] Platform URL
-  - [ ] Event date/time info
+- [x] 7.3 Welcome email template
+  - [x] Subject: "Welcome to Cursor Hackathon!"
+  - [x] Platform URL
+  - [x] Event date/time info
 
 - [ ] 7.4 Check-in confirmation email
   - [ ] Subject: "You're Checked In!"
@@ -370,20 +371,21 @@
   - [ ] Embedded QR code image
   - [ ] Food schedule
 
-- [ ] 7.5 VIP check-in email
-  - [ ] Subject: "Welcome VIP"
-  - [ ] QR code image (no credits)
-  - [ ] Food schedule only
+- [x] 7.5 VIP welcome email (moved to Phase 2)
+  - [x] Subject: "Welcome to Cursor Hackathon - Your VIP Pass"
+  - [x] QR code image embedded
+  - [x] Food schedule
 
-- [ ] 7.6 QR code to PNG conversion
-  - [ ] Generate PNG buffer from QR value
-  - [ ] Embed as inline image in email
+- [x] 7.6 QR code to PNG conversion
+  - [x] Generate data URL from QR value (`qr-image.ts`)
+  - [x] Embed as inline image in email
 
 ### Deliverable
 
-- All email types working
-- Proper templates with branding
-- QR codes embedded in emails
+- ✅ Resend client configured
+- ✅ Magic link, welcome, and VIP welcome emails working
+- ✅ QR codes embedded in VIP emails
+- [ ] Check-in confirmation email (pending Phase 5/6)
 
 ---
 
@@ -448,20 +450,20 @@
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  Dec 1-2 (Mon-Tue)                                                           │
-│  ├── Phase 1: Schema & Auth                                                  │
-│  └── Phase 2: Admin Import                                                   │
+│  ├── Phase 1: Schema & Auth ✅                                               │
+│  └── Phase 2: Admin Import ✅                                                │
 │                                                                              │
 │  Dec 2-3 (Tue-Wed)                                                           │
 │  ├── Phase 3: Participant Dashboard                                          │
 │  └── Phase 4: Credits Management                                             │
 │                                                                              │
 │  Dec 3-4 (Wed-Thu)                                                           │
-│  ├── Phase 7: Email Integration (parallel)                                   │
+│  ├── Phase 7: Email Integration (partial ✅, check-in email pending)         │
 │  └── Phase 5: Registration Check-in (start)                                  │
 │                                                                              │
 │  Dec 4-5 (Thu-Fri)                                                           │
 │  ├── Phase 5: Registration Check-in (complete)                               │
-│  ├── Phase 6: Check-in System                                                 │
+│  ├── Phase 6: Check-in System                                                │
 │  └── Phase 8: Admin Dashboard & Polish                                       │
 │                                                                              │
 │  Dec 5 (Fri)                                                                 │
@@ -477,28 +479,28 @@
 
 ## Testing Checkpoints
 
-| After Phase | Test Scenario                                               |
-| ----------- | ----------------------------------------------------------- |
-| 1           | Run migrations, test magic link login flow                  |
-| 2           | Import 10 test users from CSV, verify QR generated          |
-| 3           | Login as participant, view QR, test copy button             |
-| 4           | Create credit type, import 10 codes                         |
-| 5           | Full check-in: scan → status update → codes assigned        |
-| 6           | Check-in type selection, check-in scan, duplicate rejection |
-| 7           | Receive all email types in inbox                            |
-| 8           | End-to-end with 100+ test users, stress test scanner        |
+| After Phase | Test Scenario                                               | Status |
+| ----------- | ----------------------------------------------------------- | ------ |
+| 1           | Run migrations, test magic link login flow                  | ✅     |
+| 2           | Import 10 test users from CSV, verify QR generated          | ✅     |
+| 3           | Login as participant, view QR, test copy button             |        |
+| 4           | Create credit type, import 10 codes                         |        |
+| 5           | Full check-in: scan → status update → codes assigned        |        |
+| 6           | Check-in type selection, check-in scan, duplicate rejection |        |
+| 7           | Receive all email types in inbox                            |        |
+| 8           | End-to-end with 100+ test users, stress test scanner        |        |
 
 ---
 
 ## Pre-Event Checklist
 
-- [ ] 1000 participants imported from Luma
+- [ ] 1000 participants imported from Luma (admin import ready)
 - [ ] All 6 credit types created
 - [ ] All sponsor codes imported
-- [ ] VIPs added and ready
-- [ ] Welcome emails sent to all participants
-- [ ] Ops accounts created
-- [ ] Admin accounts created
+- [ ] VIPs added and ready (manual creation ready)
+- [ ] Welcome emails sent to all participants (send function ready)
+- [ ] Ops accounts created (manual creation ready)
+- [ ] Admin accounts created (manual creation ready)
 - [ ] Test check-in flow on event venue WiFi
 - [ ] Backup manual check-in process documented
 - [ ] Scanner devices tested (phones/tablets)

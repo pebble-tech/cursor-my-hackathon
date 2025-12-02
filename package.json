@@ -39,8 +39,7 @@
     "*.{js,jsx,ts,tsx}": [
       "prettier --write"
     ],
-    "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint",
-    "!**/routeTree.gen.ts": []
+    "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint"
   },
   "pnpm": {
     "overrides": {
