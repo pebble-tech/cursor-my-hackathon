@@ -1,5 +1,7 @@
 import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
+import { ParticipantStatusCodes, ParticipantTypeCodes, UserRoleCodes } from '~/config/constant';
+
 export const UsersTable = pgTable(
   'users',
   {
@@ -13,13 +15,13 @@ export const UsersTable = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
-    role: text('role').default('participant'),
+    role: text('role', { enum: UserRoleCodes }).default('participant').notNull(),
     banned: boolean('banned').default(false),
     banReason: text('ban_reason'),
     banExpires: timestamp('ban_expires'),
     lumaId: text('luma_id'),
-    participantType: text('participant_type').default('regular'),
-    status: text('status').default('registered'),
+    participantType: text('participant_type', { enum: ParticipantTypeCodes }).default('regular').notNull(),
+    status: text('status', { enum: ParticipantStatusCodes }).default('registered').notNull(),
     checkedInAt: timestamp('checked_in_at'),
     checkedInBy: text('checked_in_by'),
     qrCodeValue: text('qr_code_value'),

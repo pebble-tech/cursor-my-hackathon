@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink } from 'better-auth/plugins';
 
+import { ParticipantStatuses, ParticipantTypes } from '~/config/constant';
 import { env } from '~/config/env';
 import { db } from '~/drizzle.server';
 import { sendMagicLinkEmail } from '~/email/templates/magic-link';
@@ -34,13 +35,13 @@ export const auth = betterAuth({
       participantType: {
         type: 'string',
         required: false,
-        defaultValue: 'regular',
+        defaultValue: ParticipantTypes.REGULAR.code,
         input: false,
       },
       status: {
         type: 'string',
         required: false,
-        defaultValue: 'registered',
+        defaultValue: ParticipantStatuses.REGISTERED.code,
         input: false,
       },
       checkedInAt: {
@@ -74,7 +75,7 @@ export const auth = betterAuth({
           throw new Error('Email not registered');
         }
 
-        if (existingUser.participantType === 'vip') {
+        if (existingUser.participantType === ParticipantTypes.VIP.code) {
           logWarning('VIP user attempted magic link login', { email });
           throw new Error('VIP users cannot login via magic link');
         }

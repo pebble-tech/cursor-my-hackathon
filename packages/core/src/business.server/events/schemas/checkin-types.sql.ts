@@ -1,20 +1,15 @@
 import { boolean, index, integer, pgTable, text } from 'drizzle-orm/pg-core';
 
+import { CheckinTypeCategoryCodes } from '~/config/constant';
+
 import { cuidId, timestamps } from '../../../drizzle.server/types';
-
-export const CHECKIN_TYPE = {
-  ATTENDANCE: 'attendance',
-  MEAL: 'meal',
-} as const;
-
-export type CheckinTypeCategory = (typeof CHECKIN_TYPE)[keyof typeof CHECKIN_TYPE];
 
 export const CheckinTypesTable = pgTable(
   'checkin_types',
   {
     id: cuidId('id'),
     name: text('name').notNull().unique(),
-    type: text('type').notNull(),
+    type: text('type', { enum: CheckinTypeCategoryCodes }).notNull(),
     description: text('description'),
     displayOrder: integer('display_order').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
@@ -29,3 +24,9 @@ export const CheckinTypesTable = pgTable(
 export type CheckinType = typeof CheckinTypesTable.$inferSelect;
 export type NewCheckinType = typeof CheckinTypesTable.$inferInsert;
 
+// Re-export for backward compatibility
+export {
+  CheckinTypeCategoryCodes as CHECKIN_TYPE,
+  CheckinTypeCategoryEnum,
+  type CheckinTypeCategory,
+} from '~/config/constant';

@@ -1,8 +1,9 @@
 import cuid from 'cuid';
 
-import { db, eq } from '~/drizzle.server';
 import { UsersTable } from '~/auth/schema';
 import { generateQRCodeValue } from '~/business.server/events/events';
+import { ParticipantStatuses, ParticipantTypes, UserRoles } from '~/config/constant';
+import { db, eq } from '~/drizzle.server';
 import { logError, logInfo } from '~/utils/logging';
 
 const ADMIN_EMAIL = 'kong@pebbletech.my';
@@ -27,9 +28,9 @@ async function seed() {
     name: 'Kong',
     email: ADMIN_EMAIL,
     emailVerified: true,
-    role: 'admin',
-    participantType: 'regular',
-    status: 'registered',
+    role: UserRoles.ADMIN.code,
+    participantType: ParticipantTypes.REGULAR.code,
+    status: ParticipantStatuses.REGISTERED.code,
     qrCodeValue,
   });
 
@@ -45,4 +46,3 @@ seed()
     logError('Seed failed', { error });
     process.exit(1);
   });
-

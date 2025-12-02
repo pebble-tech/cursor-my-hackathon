@@ -1,17 +1,10 @@
 import { index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
+import { CodeStatusCodes } from '~/config/constant';
+
 import { UsersTable } from '../../../auth/schema';
 import { cuidId, timestamps } from '../../../drizzle.server/types';
-
 import { CreditTypesTable } from './credit-types.sql';
-
-export const CODE_STATUS = {
-  AVAILABLE: 'available',
-  ASSIGNED: 'assigned',
-  REDEEMED: 'redeemed',
-} as const;
-
-export type CodeStatus = (typeof CODE_STATUS)[keyof typeof CODE_STATUS];
 
 export const CodesTable = pgTable(
   'codes',
@@ -25,7 +18,7 @@ export const CodesTable = pgTable(
     assignedTo: text('assigned_to').references(() => UsersTable.id, { onDelete: 'set null' }),
     assignedAt: timestamp('assigned_at'),
     redeemedAt: timestamp('redeemed_at'),
-    status: text('status').notNull().default(CODE_STATUS.AVAILABLE),
+    status: text('status', { enum: CodeStatusCodes }).notNull().default('unassigned'),
     ...timestamps,
   },
   (table) => [
@@ -38,3 +31,5 @@ export const CodesTable = pgTable(
 export type Code = typeof CodesTable.$inferSelect;
 export type NewCode = typeof CodesTable.$inferInsert;
 
+// Re-export for backward compatibility
+export { CodeStatusCodes as CODE_STATUS, CodeStatusEnum, type CodeStatus } from '~/config/constant';
