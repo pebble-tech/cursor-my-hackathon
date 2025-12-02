@@ -1,8 +1,8 @@
+import { Button } from '@base/ui/components/button';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Button } from '@base/ui/components/button';
 
-import { countQueryOptions, updateCount, updateCountMutationOptions } from '~/apis/ping';
+import { countQueryOptions, updateCountMutationOptions } from '~/apis/ping';
 
 export const Route = createFileRoute('/')({
   component: IndexComponent,
@@ -14,35 +14,30 @@ function IndexComponent() {
   const updateCountMutation = useMutation(updateCountMutationOptions());
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full space-y-8">
-        <div className="text-center space-y-4">
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-2xl space-y-8">
+        <div className="space-y-4 text-center">
           <h1 className="text-6xl font-bold">Base Template</h1>
-          <p className="text-xl text-muted-foreground">
-            TanStack Start + Better Auth + Drizzle ORM + Tailwind v4
-          </p>
+          <p className="text-muted-foreground text-xl">TanStack Start + Better Auth + Drizzle ORM + Tailwind v4</p>
         </div>
 
-        <div className="bg-card border rounded-lg p-8 space-y-4">
+        <div className="bg-card space-y-4 rounded-lg border p-8">
           <h2 className="text-2xl font-semibold">Server Function Demo</h2>
           <p className="text-muted-foreground">
             Click the button to test the server function. Count persists across refreshes.
           </p>
           <div className="flex items-center gap-4">
             <div className="text-4xl font-bold">{count}</div>
-            <Button
-              onClick={() => updateCountMutation.mutate(1)}
-              disabled={updateCountMutation.isPending}
-            >
+            <Button onClick={() => updateCountMutation.mutate(1)} disabled={updateCountMutation.isPending}>
               {updateCountMutation.isPending ? 'Incrementing...' : 'Increment'}
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-card border rounded-lg p-6 space-y-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="bg-card space-y-2 rounded-lg border p-6">
             <h3 className="font-semibold">Features</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
+            <ul className="text-muted-foreground space-y-1 text-sm">
               <li>✅ TanStack Start (React Router SSR)</li>
               <li>✅ Better Auth with Google OAuth</li>
               <li>✅ Drizzle ORM + PostgreSQL</li>
@@ -51,9 +46,9 @@ function IndexComponent() {
               <li>✅ AI SDK v5 via AI Gateway</li>
             </ul>
           </div>
-          <div className="bg-card border rounded-lg p-6 space-y-2">
+          <div className="bg-card space-y-2 rounded-lg border p-6">
             <h3 className="font-semibold">Quick Start</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
+            <ul className="text-muted-foreground space-y-1 text-sm">
               <li>1. Copy .env.example to .env</li>
               <li>2. Set up PostgreSQL database</li>
               <li>3. Run: pnpm install</li>
@@ -66,4 +61,3 @@ function IndexComponent() {
     </div>
   );
 }
-

@@ -2,7 +2,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink } from 'better-auth/plugins';
 
-import { ParticipantStatuses, ParticipantTypes } from '~/config/constant';
+import { ParticipantStatuses, ParticipantTypes, UserRoles } from '~/config/constant';
 import { env } from '~/config/env';
 import { db } from '~/drizzle.server';
 import { sendMagicLinkEmail } from '~/email/templates/magic-link';
@@ -19,6 +19,7 @@ export const auth = betterAuth({
     google: {
       clientId: env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: env.GOOGLE_CLIENT_SECRET ?? '',
+      disableImplicitSignUp: true,
     },
   },
   session: {
@@ -27,6 +28,12 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
+      role: {
+        type: 'string',
+        required: false,
+        defaultValue: UserRoles.PARTICIPANT.code,
+        input: false,
+      },
       lumaId: {
         type: 'string',
         required: false,

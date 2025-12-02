@@ -2,15 +2,15 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 
 import { AccountsTable, SessionsTable, UsersTable, VerificationsTable } from '~/auth/schema';
 import {
-  CreditTypesTable,
-  CodesTable,
-  CheckinTypesTable,
   CheckinRecordsTable,
-  usersRelations,
-  creditTypesRelations,
-  codesRelations,
-  checkinTypesRelations,
+  CheckinTypesTable,
+  CodesTable,
+  CreditTypesTable,
   checkinRecordsRelations,
+  checkinTypesRelations,
+  codesRelations,
+  creditTypesRelations,
+  usersRelations,
 } from '~/business.server/events/schemas/schema';
 import { env } from '~/config/env';
 
@@ -34,6 +34,8 @@ export {
   asc,
   desc,
 } from 'drizzle-orm';
+
+export type { SQL } from 'drizzle-orm';
 
 export const schema = {
   users: UsersTable,

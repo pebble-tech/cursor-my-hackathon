@@ -89,10 +89,17 @@
 
 **Status:** Not Started  
 **Priority:** Critical  
-**Estimated Effort:** 0.5 day  
+**Estimated Effort:** 1 day  
 **Dependencies:** Phase 1
 
 ### Tasks
+
+- [ ] 2.0 Login page
+  - [ ] `/login` route with magic link + Google OAuth
+  - [ ] Magic link for participants and ops
+  - [ ] Google OAuth for admin
+  - [ ] Post-login redirect based on role
+  - [ ] Error handling for unregistered/VIP users
 
 - [ ] 2.1 Create admin route layout with role guard
   - [ ] `apps/web/src/routes/admin/` directory
@@ -107,20 +114,31 @@
   - [ ] Validate format and duplicates
   - [ ] Bulk create users with `status: 'registered'`
   - [ ] Auto-generate QR code on creation
+  - [ ] Return skipped rows with reasons
 
-- [ ] 2.4 VIP manual creation form
+- [ ] 2.4 Manual user creation form
   - [ ] Name + email input
-  - [ ] Create with `participantType: 'vip'`
+  - [ ] Type selector: VIP | Ops | Admin
+  - [ ] VIP: `participantType: 'vip'`, cannot login
+  - [ ] Ops/Admin: set role accordingly
 
 - [ ] 2.5 Participant list view
-  - [ ] Basic table with name, email, status
-  - [ ] Filter by type (regular/VIP)
-  - [ ] Pagination
+  - [ ] Server-side paginated table
+  - [ ] Filter by status, type, role
+  - [ ] Search by name/email
+  - [ ] Status badge (registered/checked_in)
+
+- [ ] 2.6 Welcome email trigger
+  - [ ] "Send Welcome Emails" button
+  - [ ] Different content for regular vs VIP
+  - [ ] Track sent status per user
 
 ### Deliverable
+- Users can login via magic link or Google OAuth
 - Admin can import 1000 participants from Luma CSV
-- Admin can manually add VIPs
+- Admin can manually add VIPs, ops, and admin accounts
 - QR codes auto-generated for all users
+- Welcome emails can be batch-sent
 
 ---
 
@@ -133,43 +151,36 @@
 
 ### Tasks
 
-- [ ] 3.1 Login page
-  - [ ] Email input form
-  - [ ] "Send magic link" button
-  - [ ] Success state ("Check your email")
-  - [ ] Error handling ("Email not registered")
-
-- [ ] 3.2 Dashboard layout (mobile-first)
+- [ ] 3.1 Dashboard layout (mobile-first)
   - [ ] Header with name and logout
   - [ ] Status badge (registered/checked-in)
 
-- [ ] 3.3 QR code display component
+- [ ] 3.2 QR code display component
   - [ ] Large QR (300x300px minimum)
   - [ ] "This QR never expires" message
   - [ ] Instructions text
 
-- [ ] 3.4 Pre-check-in state
+- [ ] 3.3 Pre-check-in state
   - [ ] "Check-in opens Dec 6, 9:00 AM" message
   - [ ] QR code visible
 
-- [ ] 3.5 Post-check-in state
+- [ ] 3.4 Post-check-in state
   - [ ] Credits list visible
   - [ ] "Checked in at [time]" badge
 
-- [ ] 3.6 Credit card component
+- [ ] 3.5 Credit card component
   - [ ] Sponsor icon/name
   - [ ] Code value with copy button
   - [ ] Redeem URL link
   - [ ] Expandable instructions
 
-- [ ] 3.7 Mark as redeemed toggle
+- [ ] 3.6 Mark as redeemed toggle
   - [ ] Checkbox per credit
   - [ ] Persist to database
   - [ ] Filter by status (all/redeemed/pending)
 
 ### Deliverable
-- Participants can login via magic link
-- See their QR code
+- Participants can see their QR code
 - View and copy credit codes after check-in
 
 ---

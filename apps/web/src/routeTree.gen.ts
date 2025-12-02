@@ -8,100 +8,177 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createServerRootRoute } from '@tanstack/react-start/server'
+import { createServerRootRoute } from '@tanstack/react-start/server';
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { ServerRoute as ApiAuthSplatServerRouteImport } from './routes/api.auth.$'
+import { Route as rootRouteImport } from './routes/__root';
+import { Route as AdminRouteImport } from './routes/admin';
+import { Route as AdminIndexRouteImport } from './routes/admin/index';
+import { Route as AdminParticipantsRouteImport } from './routes/admin/participants';
+import { ServerRoute as ApiAuthSplatServerRouteImport } from './routes/api.auth.$';
+import { Route as IndexRouteImport } from './routes/index';
+import { Route as LoginRouteImport } from './routes/login';
 
-const rootServerRouteImport = createServerRootRoute()
+const rootServerRouteImport = createServerRootRoute();
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminParticipantsRoute = AdminParticipantsRouteImport.update({
+  id: '/participants',
+  path: '/participants',
+  getParentRoute: () => AdminRoute,
+} as any);
 const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootServerRouteImport,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof IndexRoute;
+  '/admin': typeof AdminRouteWithChildren;
+  '/login': typeof LoginRoute;
+  '/admin/participants': typeof AdminParticipantsRoute;
+  '/admin/': typeof AdminIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof IndexRoute;
+  '/login': typeof LoginRoute;
+  '/admin/participants': typeof AdminParticipantsRoute;
+  '/admin': typeof AdminIndexRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  __root__: typeof rootRouteImport;
+  '/': typeof IndexRoute;
+  '/admin': typeof AdminRouteWithChildren;
+  '/login': typeof LoginRoute;
+  '/admin/participants': typeof AdminParticipantsRoute;
+  '/admin/': typeof AdminIndexRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
-  fileRoutesById: FileRoutesById
+  fileRoutesByFullPath: FileRoutesByFullPath;
+  fullPaths: '/' | '/admin' | '/login' | '/admin/participants' | '/admin/';
+  fileRoutesByTo: FileRoutesByTo;
+  to: '/' | '/login' | '/admin/participants' | '/admin';
+  id: '__root__' | '/' | '/admin' | '/login' | '/admin/participants' | '/admin/';
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  IndexRoute: typeof IndexRoute;
+  AdminRoute: typeof AdminRouteWithChildren;
+  LoginRoute: typeof LoginRoute;
 }
 export interface FileServerRoutesByFullPath {
-  '/api/auth/$': typeof ApiAuthSplatServerRoute
+  '/api/auth/$': typeof ApiAuthSplatServerRoute;
 }
 export interface FileServerRoutesByTo {
-  '/api/auth/$': typeof ApiAuthSplatServerRoute
+  '/api/auth/$': typeof ApiAuthSplatServerRoute;
 }
 export interface FileServerRoutesById {
-  __root__: typeof rootServerRouteImport
-  '/api/auth/$': typeof ApiAuthSplatServerRoute
+  __root__: typeof rootServerRouteImport;
+  '/api/auth/$': typeof ApiAuthSplatServerRoute;
 }
 export interface FileServerRouteTypes {
-  fileServerRoutesByFullPath: FileServerRoutesByFullPath
-  fullPaths: '/api/auth/$'
-  fileServerRoutesByTo: FileServerRoutesByTo
-  to: '/api/auth/$'
-  id: '__root__' | '/api/auth/$'
-  fileServerRoutesById: FileServerRoutesById
+  fileServerRoutesByFullPath: FileServerRoutesByFullPath;
+  fullPaths: '/api/auth/$';
+  fileServerRoutesByTo: FileServerRoutesByTo;
+  to: '/api/auth/$';
+  id: '__root__' | '/api/auth/$';
+  fileServerRoutesById: FileServerRoutesById;
 }
 export interface RootServerRouteChildren {
-  ApiAuthSplatServerRoute: typeof ApiAuthSplatServerRoute
+  ApiAuthSplatServerRoute: typeof ApiAuthSplatServerRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login';
+      path: '/login';
+      fullPath: '/login';
+      preLoaderRoute: typeof LoginRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/admin': {
+      id: '/admin';
+      path: '/admin';
+      fullPath: '/admin';
+      preLoaderRoute: typeof AdminRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/';
+      path: '/';
+      fullPath: '/';
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/admin/': {
+      id: '/admin/';
+      path: '/';
+      fullPath: '/admin/';
+      preLoaderRoute: typeof AdminIndexRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    '/admin/participants': {
+      id: '/admin/participants';
+      path: '/participants';
+      fullPath: '/admin/participants';
+      preLoaderRoute: typeof AdminParticipantsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
   }
 }
 declare module '@tanstack/react-start/server' {
   interface ServerFileRoutesByPath {
     '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatServerRouteImport
-      parentRoute: typeof rootServerRouteImport
-    }
+      id: '/api/auth/$';
+      path: '/api/auth/$';
+      fullPath: '/api/auth/$';
+      preLoaderRoute: typeof ApiAuthSplatServerRouteImport;
+      parentRoute: typeof rootServerRouteImport;
+    };
   }
 }
 
+interface AdminRouteChildren {
+  AdminParticipantsRoute: typeof AdminParticipantsRoute;
+  AdminIndexRoute: typeof AdminIndexRoute;
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminParticipantsRoute: AdminParticipantsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+};
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren);
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-}
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  AdminRoute: AdminRouteWithChildren,
+  LoginRoute: LoginRoute,
+};
+export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
 const rootServerRouteChildren: RootServerRouteChildren = {
   ApiAuthSplatServerRoute: ApiAuthSplatServerRoute,
-}
+};
 export const serverRouteTree = rootServerRouteImport
   ._addFileChildren(rootServerRouteChildren)
-  ._addFileTypes<FileServerRouteTypes>()
+  ._addFileTypes<FileServerRouteTypes>();

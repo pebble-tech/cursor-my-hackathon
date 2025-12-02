@@ -54,4 +54,3 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
     </html>
   );
 }
-
