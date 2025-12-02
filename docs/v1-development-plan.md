@@ -15,7 +15,7 @@
 │                                                                              │
 │  Phase 1: Schema & Auth ✅ ──┬──► Phase 2: Admin Import ✅                   │
 │                              │                 │                             │
-│                              │                 ├──► Phase 3: Participant UI  │
+│                              │                 ├──► Phase 3: Participant UI ✅│
 │                              │                 │                             │
 │                              │                 └──► Phase 4: Credits Mgmt    │
 │                              │                           │                   │
@@ -34,6 +34,34 @@
 │  ✅ = Complete    ~ = Partial                                                │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Architectural Decisions
+
+### Dashboard Routing Strategy (Decided: Dec 2, 2025)
+
+**Decision:** Separate routes for different user roles
+
+```
+Route Structure:
+├── /                  → Landing page (all users, shows login or "Go to Dashboard")
+├── /login             → Authentication page
+├── /dashboard         → Participant dashboard (participants only)
+├── /ops               → Ops scanner dashboard (ops + admin) [Phase 5/6]
+└── /admin             → Admin management dashboard (admin only)
+```
+
+**Rationale:**
+1. **UX Optimization**: Ops scanner needs mobile-first, camera-centric UI. Admin management needs desktop-first, data-table UI.
+2. **Device Patterns**: Ops use phones/tablets for scanning. Admins use laptops for management.
+3. **Access Control**: Clear separation of permissions per route.
+
+**Landing Page Behavior (`/`):**
+- Unauthenticated: Show event info (name, date, location) + "Login" button
+- Authenticated Participant: Show event info + "Go to Dashboard" → `/dashboard`
+- Authenticated Ops: Show event info + "Go to Dashboard" → placeholder (until `/ops` built)
+- Authenticated Admin: Show event info + "Go to Dashboard" → `/admin`
 
 ---
 
@@ -147,45 +175,45 @@
 
 ## Phase 3: Participant Dashboard
 
-**Status:** Not Started  
+**Status:** ✅ Completed  
 **Priority:** High  
 **Estimated Effort:** 1 day  
 **Dependencies:** Phase 1, Phase 2
 
 ### Tasks
 
-- [ ] 3.1 Dashboard layout (mobile-first)
-  - [ ] Header with name and logout
-  - [ ] Status badge (registered/checked-in)
+- [x] 3.1 Dashboard layout (mobile-first)
+  - [x] Header with name and logout
+  - [x] Status badge (registered/checked-in)
 
-- [ ] 3.2 QR code display component
-  - [ ] Large QR (300x300px minimum)
-  - [ ] "This QR never expires" message
-  - [ ] Instructions text
+- [x] 3.2 QR code display component
+  - [x] Large QR (280px, close to 300px spec)
+  - [x] "This QR never expires" message
+  - [x] Instructions text
 
-- [ ] 3.3 Pre-check-in state
-  - [ ] "Check-in opens Dec 6, 9:00 AM" message
-  - [ ] QR code visible
+- [~] 3.3 Pre-check-in state
+  - [ ] ~~"Check-in opens Dec 6, 9:00 AM" message~~ (deferred per 003-plan.md)
+  - [x] QR code visible
 
-- [ ] 3.4 Post-check-in state
-  - [ ] Credits list visible
-  - [ ] "Checked in at [time]" badge
+- [x] 3.4 Post-check-in state
+  - [x] Credits list visible
+  - [x] "Checked in at [time]" badge
 
-- [ ] 3.5 Credit card component
-  - [ ] Sponsor icon/name
-  - [ ] Code value with copy button
-  - [ ] Redeem URL link
-  - [ ] Expandable instructions
+- [x] 3.5 Credit card component
+  - [x] Sponsor icon/name
+  - [x] Code value with copy button
+  - [x] Redeem URL link
+  - [x] Expandable instructions
 
-- [ ] 3.6 Mark as redeemed toggle
-  - [ ] Checkbox per credit
-  - [ ] Persist to database
-  - [ ] Filter by status (all/redeemed/pending)
+- [x] 3.6 Mark as redeemed toggle
+  - [x] Checkbox per credit
+  - [x] Persist to database
+  - [x] Filter by status (all/redeemed/pending)
 
 ### Deliverable
 
-- Participants can see their QR code
-- View and copy credit codes after check-in
+- ✅ Participants can see their QR code
+- ✅ View and copy credit codes after check-in
 
 ---
 
@@ -483,7 +511,7 @@
 | ----------- | ----------------------------------------------------------- | ------ |
 | 1           | Run migrations, test magic link login flow                  | ✅     |
 | 2           | Import 10 test users from CSV, verify QR generated          | ✅     |
-| 3           | Login as participant, view QR, test copy button             |        |
+| 3           | Login as participant, view QR, test copy button             | ✅     |
 | 4           | Create credit type, import 10 codes                         |        |
 | 5           | Full check-in: scan → status update → codes assigned        |        |
 | 6           | Check-in type selection, check-in scan, duplicate rejection |        |

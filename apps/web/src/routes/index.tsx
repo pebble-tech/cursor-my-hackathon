@@ -1,42 +1,89 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { CalendarDays, MapPin } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { UserRoleEnum } from '@base/core/config/constant';
+import { Button } from '@base/ui/components/button';
+
+import { getServerSession, type User } from '~/apis/auth';
 
 export const Route = createFileRoute('/')({
+  beforeLoad: async () => {
+    const session = await getServerSession();
+    return { session };
+  },
   component: IndexComponent,
 });
 
 function IndexComponent() {
+  const { session } = Route.useRouteContext();
+  const navigate = useNavigate();
+
+  const user = session?.user as User | undefined;
+
+  const handleDashboardClick = () => {
+    if (!user) {
+      navigate({ to: '/login' });
+      return;
+    }
+
+    const role = user.role;
+
+    if (role === UserRoleEnum.admin) {
+      navigate({ to: '/admin' });
+    } else if (role === UserRoleEnum.participant) {
+      navigate({ to: '/dashboard' });
+    } else if (role === UserRoleEnum.ops) {
+      toast.info('Ops dashboard coming soon');
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-2xl space-y-8">
-        <div className="space-y-4 text-center">
-          <h1 className="text-6xl font-bold">Base Template</h1>
-          <p className="text-muted-foreground text-xl">TanStack Start + Better Auth + Drizzle ORM + Tailwind v4</p>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
+      <div className="w-full max-w-lg space-y-8 text-center">
+        <div className="space-y-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-black">
+            <img src="/cursor-logo.png" alt="Cursor" className="h-10 w-10" />
+          </div>
+
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Cursor x Anthropic
+            <br />
+            MY Hackathon
+          </h1>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="bg-card space-y-2 rounded-lg border p-6">
-            <h3 className="font-semibold">Features</h3>
-            <ul className="text-muted-foreground space-y-1 text-sm">
-              <li>TanStack Start (React Router SSR)</li>
-              <li>Better Auth with Google OAuth</li>
-              <li>Drizzle ORM + PostgreSQL</li>
-              <li>Tailwind CSS v4</li>
-              <li>Shadcn UI Components</li>
-              <li>AI SDK v5 via AI Gateway</li>
-            </ul>
+        <div className="space-y-3 text-gray-600">
+          <div className="flex items-center justify-center gap-2">
+            <CalendarDays className="h-5 w-5" />
+            <span className="text-lg">December 6-7, 2025</span>
           </div>
-          <div className="bg-card space-y-2 rounded-lg border p-6">
-            <h3 className="font-semibold">Quick Start</h3>
-            <ul className="text-muted-foreground space-y-1 text-sm">
-              <li>1. Copy .env.example to .env</li>
-              <li>2. Set up PostgreSQL database</li>
-              <li>3. Run: pnpm install</li>
-              <li>4. Run: pnpm db:push</li>
-              <li>5. Run: pnpm dev:app</li>
-            </ul>
+          <div className="flex items-center justify-center gap-2">
+            <MapPin className="h-5 w-5" />
+            <span className="text-lg">Monash University Malaysia, Level 2</span>
           </div>
         </div>
+
+        <div className="pt-4">
+          <Button size="lg" className="w-full max-w-xs text-base" onClick={handleDashboardClick}>
+            {user ? 'Go to Dashboard' : 'Login'}
+          </Button>
+        </div>
+
+        <WelcomeMessage userName={user?.name} />
       </div>
     </div>
+  );
+}
+
+function WelcomeMessage({ userName }: { userName?: string }) {
+  if (!userName) {
+    return <p className="text-sm text-gray-500">Sign in to access your participant dashboard</p>;
+  }
+
+  return (
+    <p className="text-sm text-gray-500">
+      Welcome back, <span className="font-medium text-gray-700">{userName}</span>
+    </p>
   );
 }

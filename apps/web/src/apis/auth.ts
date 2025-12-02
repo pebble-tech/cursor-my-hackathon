@@ -47,20 +47,45 @@ export const requireSession = createServerFn({ method: 'GET' }).handler(async ()
 export const requireRole = createServerFn({ method: 'GET' })
   .validator((allowedRoles: UserRole[]) => allowedRoles)
   .handler(async ({ data: allowedRoles }): Promise<Session> => {
-    const session = await requireSession();
+    const request = getWebRequest();
+    if (!request) throw new Error('No request context');
+
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session) throw new Error('Unauthorized');
 
     const userRole = session.user.role as UserRole;
     if (!allowedRoles.includes(userRole)) {
       throw new Error('Forbidden');
     }
 
-    return session;
+    return session as Session;
   });
 
 export const requireAdmin = createServerFn({ method: 'GET' }).handler(async (): Promise<Session> => {
-  return requireRole({ data: [UserRoleEnum.admin] });
+  const request = getWebRequest();
+  if (!request) throw new Error('No request context');
+
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) throw new Error('Unauthorized');
+
+  if (session.user.role !== UserRoleEnum.admin) {
+    throw new Error('Forbidden');
+  }
+
+  return session as Session;
 });
 
 export const requireOpsOrAdmin = createServerFn({ method: 'GET' }).handler(async (): Promise<Session> => {
-  return requireRole({ data: [UserRoleEnum.ops, UserRoleEnum.admin] });
+  const request = getWebRequest();
+  if (!request) throw new Error('No request context');
+
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) throw new Error('Unauthorized');
+
+  const role = session.user.role as UserRole;
+  if (role !== UserRoleEnum.ops && role !== UserRoleEnum.admin) {
+    throw new Error('Forbidden');
+  }
+
+  return session as Session;
 });

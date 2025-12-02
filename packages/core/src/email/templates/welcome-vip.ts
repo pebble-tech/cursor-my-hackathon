@@ -1,5 +1,5 @@
-import { generateQRCodeDataURL } from '~/business.server/events/qr-image';
 import { sendEmail } from '~/email/client';
+import { generateQRCodeDataURL } from '~/utils/qr-image';
 
 type SendVIPWelcomeEmailParams = {
   to: string;

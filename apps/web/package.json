@@ -29,8 +29,10 @@
     "cuid": "^3.0.0",
     "lucide-react": "^0.539.0",
     "papaparse": "^5.5.3",
+    "qr-code-styling": "^1.9.2",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "sonner": "^2.0.7",
     "zod": "catalog:"
   },
   "devDependencies": {
