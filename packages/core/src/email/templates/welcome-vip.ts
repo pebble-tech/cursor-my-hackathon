@@ -1,5 +1,5 @@
 import { sendEmail } from '~/email/client';
-import { generateQRCodeDataURL } from '~/utils/qr-image';
+import { generateQRCodeBuffer } from '~/utils/qr-image';
 
 type SendVIPWelcomeEmailParams = {
   to: string;
@@ -7,10 +7,12 @@ type SendVIPWelcomeEmailParams = {
   qrCodeValue: string;
 };
 
+const QR_CODE_CONTENT_ID = 'qr-code';
+
 export async function sendVIPWelcomeEmail({ to, name, qrCodeValue }: SendVIPWelcomeEmailParams) {
   const greeting = `Hi ${name}`;
 
-  const qrCodeDataUrl = await generateQRCodeDataURL(qrCodeValue, { width: 300, margin: 2 });
+  const qrCodeBuffer = await generateQRCodeBuffer(qrCodeValue, { width: 300, margin: 2 });
 
   const html = `
 <!DOCTYPE html>
@@ -44,7 +46,7 @@ export async function sendVIPWelcomeEmail({ to, name, qrCodeValue }: SendVIPWelc
               <p style="margin: 0 0 16px; font-size: 15px; line-height: 24px; color: #3f3f46;">Show this QR code at food stations to receive your complimentary meals. Your QR code is permanent and never expires.</p>
               
               <div style="text-align: center; padding: 20px; background-color: #fafafa; border-radius: 8px; margin-bottom: 24px;">
-                <img src="${qrCodeDataUrl}" alt="Your VIP QR Code" width="200" height="200" style="display: block; margin: 0 auto; border-radius: 4px;" />
+                <img src="cid:${QR_CODE_CONTENT_ID}" alt="Your VIP QR Code" width="200" height="200" style="display: block; margin: 0 auto; border-radius: 4px;" />
               </div>
               
               <div style="margin: 24px 0; padding: 16px; background-color: #fefce8; border-radius: 8px; border: 1px solid #fef08a;">
@@ -91,5 +93,12 @@ Save this email or screenshot your QR code for easy access during the event.`;
     subject: 'Welcome to Cursor Hackathon - Your VIP Pass',
     html,
     text,
+    attachments: [
+      {
+        filename: 'qrcode.png',
+        content: qrCodeBuffer,
+        contentId: QR_CODE_CONTENT_ID,
+      },
+    ],
   });
 }

@@ -5,11 +5,18 @@ import { logError, logInfo } from '~/utils/logging';
 
 const resend = new Resend(env.RESEND_API_KEY);
 
+type EmailAttachment = {
+  filename: string;
+  content: Buffer;
+  contentId?: string;
+};
+
 type SendEmailParams = {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  attachments?: EmailAttachment[];
 };
 
 type SendEmailResult = { success: true; messageId: string } | { success: false; error: string };
@@ -22,6 +29,11 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       subject: params.subject,
       html: params.html,
       text: params.text,
+      attachments: params.attachments?.map((att) => ({
+        filename: att.filename,
+        content: att.content.toString('base64'),
+        contentId: att.contentId,
+      })),
     });
 
     if (error) {

@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { UsersTable } from '@base/core/auth/schema';
 import { generateQRCodeValue } from '@base/core/business.server/events/events';
+import { CheckinRecordsTable, CheckinTypesTable } from '@base/core/business.server/events/schemas/schema';
 import {
   ParticipantStatusCodes,
   ParticipantStatusEnum,
@@ -13,6 +14,8 @@ import {
   UserRoleEnum,
   UserTypeCodes,
   UserTypeEnum,
+  type ParticipantType,
+  type UserRole,
 } from '@base/core/config/constant';
 import { and, asc, count, db, desc, eq, inArray, like, or, type SQL } from '@base/core/drizzle.server';
 
@@ -341,4 +344,73 @@ export const deleteUser = createServerFn({ method: 'POST' })
     await db.delete(UsersTable).where(eq(UsersTable.id, id));
 
     return { success: true };
+  });
+
+const getParticipantCheckinLogsInputSchema = z.object({
+  participantId: z.string().min(1, 'Participant ID is required'),
+});
+
+export type GetParticipantCheckinLogsInput = z.infer<typeof getParticipantCheckinLogsInputSchema>;
+
+export const getParticipantCheckinLogs = createServerFn({ method: 'GET' })
+  .validator((data: GetParticipantCheckinLogsInput) => getParticipantCheckinLogsInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+
+    const { participantId } = data;
+
+    const checkedInByUser = db
+      .$with('checked_in_by_user')
+      .as(db.select({ id: UsersTable.id, name: UsersTable.name }).from(UsersTable));
+
+    const records = await db
+      .with(checkedInByUser)
+      .select({
+        checkinTypeName: CheckinTypesTable.name,
+        checkedInByName: checkedInByUser.name,
+        checkedInAt: CheckinRecordsTable.checkedInAt,
+      })
+      .from(CheckinRecordsTable)
+      .innerJoin(CheckinTypesTable, eq(CheckinRecordsTable.checkinTypeId, CheckinTypesTable.id))
+      .innerJoin(checkedInByUser, eq(CheckinRecordsTable.checkedInBy, checkedInByUser.id))
+      .where(eq(CheckinRecordsTable.participantId, participantId))
+      .orderBy(desc(CheckinRecordsTable.checkedInAt))
+      .limit(50);
+
+    return { records };
+  });
+
+const getOpsActivityLogsInputSchema = z.object({
+  opsUserId: z.string().min(1, 'Ops user ID is required'),
+});
+
+export type GetOpsActivityLogsInput = z.infer<typeof getOpsActivityLogsInputSchema>;
+
+export const getOpsActivityLogs = createServerFn({ method: 'GET' })
+  .validator((data: GetOpsActivityLogsInput) => getOpsActivityLogsInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+
+    const { opsUserId } = data;
+
+    const participantUser = db
+      .$with('participant_user')
+      .as(db.select({ id: UsersTable.id, name: UsersTable.name, email: UsersTable.email }).from(UsersTable));
+
+    const records = await db
+      .with(participantUser)
+      .select({
+        participantName: participantUser.name,
+        participantEmail: participantUser.email,
+        checkinTypeName: CheckinTypesTable.name,
+        checkedInAt: CheckinRecordsTable.checkedInAt,
+      })
+      .from(CheckinRecordsTable)
+      .innerJoin(CheckinTypesTable, eq(CheckinRecordsTable.checkinTypeId, CheckinTypesTable.id))
+      .innerJoin(participantUser, eq(CheckinRecordsTable.participantId, participantUser.id))
+      .where(eq(CheckinRecordsTable.checkedInBy, opsUserId))
+      .orderBy(desc(CheckinRecordsTable.checkedInAt))
+      .limit(50);
+
+    return { records };
   });

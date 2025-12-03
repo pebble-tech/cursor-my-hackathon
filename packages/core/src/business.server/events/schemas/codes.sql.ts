@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { UsersTable } from '../../../auth/schema';
 import { CodeStatusCodes } from '../../../config/constant';

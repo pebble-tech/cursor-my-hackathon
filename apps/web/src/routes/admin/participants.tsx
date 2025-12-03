@@ -2,7 +2,19 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { type ColumnDef } from '@tanstack/react-table';
-import { AlertCircle, CheckCircle2, Download, Edit, Loader2, Mail, Plus, Search, Trash2, Upload } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  Edit,
+  History,
+  Loader2,
+  Mail,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 
 import {
   ParticipantType,
@@ -31,11 +43,15 @@ import { getWelcomeEmailStats, sendWelcomeEmails } from '~/apis/admin/emails';
 import {
   createUser,
   deleteUser,
+  getOpsActivityLogs,
+  getParticipantCheckinLogs,
   importParticipants,
   listParticipants,
   updateUser,
   type CreateUserInput,
   type DeleteUserInput,
+  type GetOpsActivityLogsInput,
+  type GetParticipantCheckinLogsInput,
   type ListParticipantsInput,
   type UpdateUserInput,
 } from '~/apis/admin/participants';
@@ -127,9 +143,19 @@ const columns: ColumnDef<Participant>[] = [
       const meta = table.options.meta as {
         onEdit?: (participant: Participant) => void;
         onDelete?: (participant: Participant) => void;
+        onViewLog?: (participant: Participant) => void;
       };
       return (
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => meta.onViewLog?.(participant)}
+            className="h-8 w-8 p-0"
+            title="View Log"
+          >
+            <History className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => meta.onEdit?.(participant)} className="h-8 w-8 p-0">
             <Edit className="h-4 w-4" />
           </Button>
@@ -160,8 +186,10 @@ function ParticipantsPage() {
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Participant | null>(null);
   const [deletingUser, setDeletingUser] = useState<Participant | null>(null);
+  const [viewingLogUser, setViewingLogUser] = useState<Participant | null>(null);
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -335,6 +363,11 @@ function ParticipantsPage() {
   const handleDelete = (participant: Participant) => {
     setDeletingUser(participant);
     setDeleteUserDialogOpen(true);
+  };
+
+  const handleViewLog = (participant: Participant) => {
+    setViewingLogUser(participant);
+    setLogDialogOpen(true);
   };
 
   const handleUpdateUser = () => {
@@ -758,6 +791,7 @@ function ParticipantsPage() {
           meta={{
             onEdit: handleEdit,
             onDelete: handleDelete,
+            onViewLog: handleViewLog,
           }}
         />
       </div>
@@ -875,6 +909,156 @@ function ParticipantsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Check-in Log Dialog */}
+      <Dialog
+        open={logDialogOpen}
+        onOpenChange={(open) => {
+          setLogDialogOpen(open);
+          if (!open) {
+            setViewingLogUser(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          {viewingLogUser && (
+            <CheckinLogModal userId={viewingLogUser.id} userName={viewingLogUser.name} userRole={viewingLogUser.role} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function CheckinLogModal({ userId, userName, userRole }: { userId: string; userName: string; userRole: string }) {
+  const isOpsOrAdmin = userRole === UserRoleEnum.ops || userRole === UserRoleEnum.admin;
+
+  if (isOpsOrAdmin) {
+    return <OpsActivityLogView userId={userId} userName={userName} userRole={userRole} />;
+  }
+
+  return <ParticipantCheckinHistoryView userId={userId} userName={userName} />;
+}
+
+function ParticipantCheckinHistoryView({ userId, userName }: { userId: string; userName: string }) {
+  const queryParams: GetParticipantCheckinLogsInput = { participantId: userId };
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['participant-checkin-logs', userId],
+    queryFn: () => getParticipantCheckinLogs({ data: queryParams }),
+  });
+
+  const formatTime = (date: Date) => {
+    return new Date(date).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Check-in History: {userName}</DialogTitle>
+        <DialogDescription>Records of when this participant was checked in.</DialogDescription>
+      </DialogHeader>
+
+      <div className="py-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        ) : !data?.records.length ? (
+          <div className="py-8 text-center text-gray-500">No check-in records found</div>
+        ) : (
+          <div className="max-h-80 overflow-y-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600">Check-in Type</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600">Checked In By</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.records.map((record, index) => (
+                  <tr key={index} className="border-t">
+                    <td className="px-4 py-3">{record.checkinTypeName}</td>
+                    <td className="px-4 py-3">{record.checkedInByName}</td>
+                    <td className="px-4 py-3 text-gray-500">{formatTime(record.checkedInAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function OpsActivityLogView({ userId, userName, userRole }: { userId: string; userName: string; userRole: string }) {
+  const queryParams: GetOpsActivityLogsInput = { opsUserId: userId };
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['ops-activity-logs', userId],
+    queryFn: () => getOpsActivityLogs({ data: queryParams }),
+  });
+
+  const formatTime = (date: Date) => {
+    return new Date(date).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const roleLabel = userRole === UserRoleEnum.admin ? 'Admin' : 'Ops';
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Check-in Activity: {userName}</DialogTitle>
+        <DialogDescription>Participants checked in by this {roleLabel.toLowerCase()} user.</DialogDescription>
+      </DialogHeader>
+
+      <div className="py-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        ) : !data?.records.length ? (
+          <div className="py-8 text-center text-gray-500">No check-in activity found</div>
+        ) : (
+          <div className="max-h-80 overflow-y-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600">Participant</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600">Check-in Type</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.records.map((record, index) => (
+                  <tr key={index} className="border-t">
+                    <td className="px-4 py-3">
+                      <div>{record.participantName}</div>
+                      <div className="text-xs text-gray-400">{record.participantEmail}</div>
+                    </td>
+                    <td className="px-4 py-3">{record.checkinTypeName}</td>
+                    <td className="px-4 py-3 text-gray-500">{formatTime(record.checkedInAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
