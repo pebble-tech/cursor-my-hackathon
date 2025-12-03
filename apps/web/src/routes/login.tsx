@@ -34,17 +34,19 @@ function LoginPage() {
     setError(null);
     setLoading(true);
 
-    try {
-      await authClient.signIn.magicLink({
-        email,
-        callbackURL: '/',
-      });
+    const { error } = await authClient.signIn.magicLink({
+      email,
+      callbackURL: '/',
+    });
+
+    if (error) {
+      setError(error.message || 'Failed to send magic link');
+      setSuccess(false);
+    } else {
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send magic link');
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   const handleGoogle = async () => {
