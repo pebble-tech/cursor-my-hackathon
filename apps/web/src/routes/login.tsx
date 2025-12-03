@@ -7,6 +7,7 @@ import { Input } from '@base/ui/components/input';
 
 import { getServerSession } from '~/apis/auth';
 import { authClient } from '~/utils/auth-client';
+import { getDashboardUrlForUser } from '~/utils/auth-redirect';
 
 export const Route = createFileRoute('/login')({
   head: () => ({
@@ -15,8 +16,9 @@ export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
     const session = await getServerSession();
     if (session) {
+      const dashboardUrl = getDashboardUrlForUser(session.user);
       throw redirect({
-        to: '/',
+        to: dashboardUrl,
       });
     }
   },
@@ -36,7 +38,7 @@ function LoginPage() {
 
     const { error } = await authClient.signIn.magicLink({
       email,
-      callbackURL: '/',
+      callbackURL: '/login-success',
     });
 
     if (error) {
@@ -55,13 +57,12 @@ function LoginPage() {
 
     const { error } = await authClient.signIn.social({
       provider: 'google',
-      callbackURL: '/',
+      callbackURL: '/login-success',
     });
 
     if (error) {
       setError(error.message || 'Failed to sign in with Google');
     }
-    // Redirect happens automatically on success
 
     setLoading(false);
   };
@@ -129,7 +130,6 @@ function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
                   />
-                  <p className="mt-1 text-xs text-gray-500">For participants only. VIPs cannot login.</p>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -168,7 +168,6 @@ function LoginPage() {
                 )}
                 Continue with Google
               </Button>
-              <p className="mt-2 text-center text-xs text-gray-500">For ops & administrators</p>
             </div>
           </div>
         )}

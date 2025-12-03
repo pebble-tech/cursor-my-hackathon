@@ -12,24 +12,56 @@ import appCss from '~/styles/app.css?url';
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
 }>()({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      { title: 'MY Hackathon' },
-      {
-        name: 'description',
-        content: 'A modern full-stack template with TanStack Start, Better Auth, Drizzle ORM, and Tailwind CSS',
-      },
-    ],
-    links: [
-      { rel: 'stylesheet', href: appCss },
-      { rel: 'stylesheet', href: uiCss },
-    ],
-  }),
+  head: () => {
+    const baseUrl = process.env.APP_BASE_URL || 'https://cursorhackathon.pebbletech.my';
+    const siteTitle = 'MY Hackathon - Cursor x Anthropic';
+    const siteDescription =
+      'Join us for MY Hackathon, a two-day innovation event on December 6-7, 2025 at Monash University Malaysia. Build amazing projects with Cursor and Anthropic.';
+    const ogImage = `${baseUrl}/cursor-logo.png`;
+
+    return {
+      meta: [
+        { charSet: 'utf-8' },
+        {
+          name: 'viewport',
+          content: 'width=device-width, initial-scale=1',
+        },
+        { title: siteTitle },
+        {
+          name: 'description',
+          content: siteDescription,
+        },
+        {
+          name: 'keywords',
+          content: 'hackathon, cursor, anthropic, monash university, malaysia, coding, innovation, technology',
+        },
+        {
+          name: 'author',
+          content: 'Cursor x Anthropic',
+        },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:title', content: siteTitle },
+        { property: 'og:description', content: siteDescription },
+        { property: 'og:image', content: ogImage },
+        { property: 'og:image:alt', content: 'Cursor x Anthropic Logo' },
+        { property: 'og:url', content: baseUrl },
+        { property: 'og:site_name', content: 'MY Hackathon' },
+        { property: 'og:locale', content: 'en_MY' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: siteTitle },
+        { name: 'twitter:description', content: siteDescription },
+        { name: 'twitter:image', content: ogImage },
+        { name: 'twitter:image:alt', content: 'Cursor x Anthropic Logo' },
+      ],
+      links: [
+        { rel: 'stylesheet', href: appCss },
+        { rel: 'stylesheet', href: uiCss },
+        { rel: 'canonical', href: baseUrl },
+        { rel: 'icon', type: 'image/png', href: '/cursor-logo.png' },
+        { rel: 'apple-touch-icon', href: '/cursor-logo.png' },
+      ],
+    };
+  },
   component: RootComponent,
 });
 

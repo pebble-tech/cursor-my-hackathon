@@ -73,7 +73,6 @@ export const auth = betterAuth({
     account: {
       create: {
         after: async (account) => {
-          // Validate Google OAuth users must have ops or admin role
           if (account.providerId === 'google') {
             const user = await db.query.users.findFirst({
               where: (users, { eq }) => eq(users.id, account.userId),
@@ -88,14 +87,13 @@ export const auth = betterAuth({
               });
             }
 
-            if (user.role !== UserRoleEnum.ops && user.role !== UserRoleEnum.admin) {
-              logWarning('Google OAuth account creation attempted by non-ops/admin user', {
+            if (user.participantType === ParticipantTypeEnum.vip) {
+              logWarning('VIP user attempted Google OAuth login', {
                 email: user.email,
-                role: user.role,
                 userId: account.userId,
               });
               throw new APIError('FORBIDDEN', {
-                message: 'Google OAuth is only available for ops and admin users. Please use magic link.',
+                message: 'VIP users cannot login.',
               });
             }
           }
@@ -105,27 +103,18 @@ export const auth = betterAuth({
     session: {
       create: {
         before: async (session) => {
-          // Check if user has a Google account - if so, validate role
-          const googleAccount = await db.query.accounts.findFirst({
-            where: (accounts, { and, eq }) =>
-              and(eq(accounts.userId, session.userId), eq(accounts.providerId, 'google')),
+          const user = await db.query.users.findFirst({
+            where: (users, { eq }) => eq(users.id, session.userId),
           });
 
-          if (googleAccount) {
-            const user = await db.query.users.findFirst({
-              where: (users, { eq }) => eq(users.id, session.userId),
+          if (user && user.participantType === ParticipantTypeEnum.vip) {
+            logWarning('VIP user attempted to create session', {
+              email: user.email,
+              userId: session.userId,
             });
-
-            if (user && user.role !== UserRoleEnum.ops && user.role !== UserRoleEnum.admin) {
-              logWarning('Google OAuth session creation attempted by non-ops/admin user', {
-                email: user.email,
-                role: user.role,
-                userId: session.userId,
-              });
-              throw new APIError('FORBIDDEN', {
-                message: 'Google OAuth is only available for ops and admin users. Please use magic link.',
-              });
-            }
+            throw new APIError('FORBIDDEN', {
+              message: 'VIP users cannot login.',
+            });
           }
 
           return { data: session };
@@ -149,12 +138,7 @@ export const auth = betterAuth({
 
         if (existingUser.participantType === ParticipantTypeEnum.vip) {
           logWarning('VIP user attempted magic link login', { email });
-          throw new Error('VIP users cannot login via magic link');
-        }
-
-        if (existingUser.role === UserRoleEnum.ops || existingUser.role === UserRoleEnum.admin) {
-          logWarning('Ops/Admin user attempted magic link login', { email, role: existingUser.role });
-          throw new Error('Ops and admin users must login via Google OAuth');
+          throw new Error('VIP users cannot login');
         }
 
         const result = await sendMagicLinkEmail({

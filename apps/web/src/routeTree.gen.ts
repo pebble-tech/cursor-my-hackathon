@@ -12,6 +12,7 @@ import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OpsRouteImport } from './routes/ops'
+import { Route as LoginSuccessRouteImport } from './routes/login-success'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -28,6 +29,11 @@ const rootServerRouteImport = createServerRootRoute()
 const OpsRoute = OpsRouteImport.update({
   id: '/ops',
   path: '/ops',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginSuccessRoute = LoginSuccessRouteImport.update({
+  id: '/login-success',
+  path: '/login-success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/login-success': typeof LoginSuccessRoute
   '/ops': typeof OpsRouteWithChildren
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/credits': typeof AdminCreditsRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/login-success': typeof LoginSuccessRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/login-success': typeof LoginSuccessRoute
   '/ops': typeof OpsRouteWithChildren
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/credits': typeof AdminCreditsRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/login'
+    | '/login-success'
     | '/ops'
     | '/admin/checkins'
     | '/admin/credits'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/login-success'
     | '/admin/checkins'
     | '/admin/credits'
     | '/admin/participants'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/login'
+    | '/login-success'
     | '/ops'
     | '/admin/checkins'
     | '/admin/credits'
@@ -158,6 +170,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  LoginSuccessRoute: typeof LoginSuccessRoute
   OpsRoute: typeof OpsRouteWithChildren
 }
 export interface FileServerRoutesByFullPath {
@@ -189,6 +202,13 @@ declare module '@tanstack/react-router' {
       path: '/ops'
       fullPath: '/ops'
       preLoaderRoute: typeof OpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login-success': {
+      id: '/login-success'
+      path: '/login-success'
+      fullPath: '/login-success'
+      preLoaderRoute: typeof LoginSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -299,6 +319,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  LoginSuccessRoute: LoginSuccessRoute,
   OpsRoute: OpsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
