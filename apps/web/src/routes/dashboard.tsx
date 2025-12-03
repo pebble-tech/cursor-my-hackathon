@@ -32,6 +32,8 @@ function DashboardPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['participant-dashboard'],
     queryFn: () => getParticipantDashboard(),
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 
   const redeemMutation = useMutation({
