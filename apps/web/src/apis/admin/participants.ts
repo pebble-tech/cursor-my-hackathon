@@ -4,6 +4,16 @@ import { z } from 'zod';
 
 import { UsersTable } from '@base/core/auth/schema';
 import { generateQRCodeValue } from '@base/core/business.server/events/events';
+import {
+  ParticipantStatusCodes,
+  ParticipantStatusEnum,
+  ParticipantTypeCodes,
+  ParticipantTypeEnum,
+  UserRoleCodes,
+  UserRoleEnum,
+  UserTypeCodes,
+  UserTypeEnum,
+} from '@base/core/config/constant';
 import { and, asc, count, db, desc, eq, inArray, like, or, type SQL } from '@base/core/drizzle.server';
 
 import { requireAdmin } from '~/apis/auth';
@@ -12,9 +22,9 @@ const listParticipantsInputSchema = z.object({
   page: z.number().min(1).default(1),
   pageSize: z.number().min(1).max(100).default(20),
   search: z.string().optional(),
-  status: z.enum(['registered', 'checked_in']).optional(),
-  participantType: z.enum(['regular', 'vip']).optional(),
-  role: z.enum(['participant', 'ops', 'admin']).optional(),
+  status: z.enum(ParticipantStatusCodes).optional(),
+  participantType: z.enum(ParticipantTypeCodes).optional(),
+  role: z.enum(UserRoleCodes).optional(),
   sortBy: z.enum(['name', 'email', 'createdAt']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
@@ -95,7 +105,7 @@ export const listParticipants = createServerFn({ method: 'GET' })
 const createUserInputSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email format'),
-  userType: z.enum(['vip', 'ops', 'admin']),
+  userType: z.enum(UserTypeCodes),
 });
 
 export type CreateUserInput = z.infer<typeof createUserInputSchema>;
@@ -119,15 +129,18 @@ export const createUser = createServerFn({ method: 'POST' })
     const userId = cuid();
     const qrCodeValue = generateQRCodeValue(userId);
 
-    let role: 'participant' | 'ops' | 'admin' = 'participant';
-    let participantType: 'regular' | 'vip' = 'regular';
+    let role: UserRole = UserRoleEnum.participant;
+    let participantType: ParticipantType = ParticipantTypeEnum.regular;
 
-    if (userType === 'vip') {
-      participantType = 'vip';
-    } else if (userType === 'ops') {
-      role = 'ops';
-    } else if (userType === 'admin') {
-      role = 'admin';
+    if (userType === UserTypeEnum.vip) {
+      participantType = ParticipantTypeEnum.vip;
+    } else if (userType === UserTypeEnum.ops) {
+      role = UserRoleEnum.ops;
+    } else if (userType === UserTypeEnum.admin) {
+      role = UserRoleEnum.admin;
+    } else if (userType === UserTypeEnum.regular) {
+      role = UserRoleEnum.participant;
+      participantType = ParticipantTypeEnum.regular;
     }
 
     const [newUser] = await db
@@ -139,7 +152,7 @@ export const createUser = createServerFn({ method: 'POST' })
         emailVerified: false,
         role,
         participantType,
-        status: 'registered',
+        status: ParticipantStatusEnum.registered,
         qrCodeValue,
       })
       .returning();
@@ -216,9 +229,9 @@ export const importParticipants = createServerFn({ method: 'POST' })
         name: p.name,
         email: normalizedEmail,
         emailVerified: false,
-        role: 'participant',
-        participantType: 'regular',
-        status: 'registered',
+        role: UserRoleEnum.participant,
+        participantType: ParticipantTypeEnum.regular,
+        status: ParticipantStatusEnum.registered,
         lumaId: p.lumaId || null,
         qrCodeValue,
       });
@@ -242,9 +255,9 @@ const updateUserInputSchema = z.object({
   id: z.string().min(1, 'User ID is required'),
   name: z.string().min(1, 'Name is required').optional(),
   email: z.string().email('Invalid email format').optional(),
-  role: z.enum(['participant', 'ops', 'admin']).optional(),
-  participantType: z.enum(['regular', 'vip']).optional(),
-  status: z.enum(['registered', 'checked_in']).optional(),
+  role: z.enum(UserRoleCodes).optional(),
+  participantType: z.enum(ParticipantTypeCodes).optional(),
+  status: z.enum(ParticipantStatusCodes).optional(),
 });
 
 export type UpdateUserInput = z.infer<typeof updateUserInputSchema>;

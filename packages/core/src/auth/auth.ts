@@ -3,7 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError } from 'better-auth/api';
 import { magicLink } from 'better-auth/plugins';
 
-import { ParticipantStatuses, ParticipantTypes, UserRoles } from '~/config/constant';
+import { ParticipantStatusEnum, ParticipantTypeEnum, UserRoleEnum } from '~/config/constant';
 import { env } from '~/config/env';
 import { db } from '~/drizzle.server';
 import { sendMagicLinkEmail } from '~/email/templates/magic-link';
@@ -32,7 +32,7 @@ export const auth = betterAuth({
       role: {
         type: 'string',
         required: false,
-        defaultValue: UserRoles.PARTICIPANT.code,
+        defaultValue: UserRoleEnum.participant,
         input: false,
       },
       lumaId: {
@@ -43,13 +43,13 @@ export const auth = betterAuth({
       participantType: {
         type: 'string',
         required: false,
-        defaultValue: ParticipantTypes.REGULAR.code,
+        defaultValue: ParticipantTypeEnum.regular,
         input: false,
       },
       status: {
         type: 'string',
         required: false,
-        defaultValue: ParticipantStatuses.REGISTERED.code,
+        defaultValue: ParticipantStatusEnum.registered,
         input: false,
       },
       checkedInAt: {
@@ -88,7 +88,7 @@ export const auth = betterAuth({
               });
             }
 
-            if (user.role !== UserRoles.OPS.code && user.role !== UserRoles.ADMIN.code) {
+            if (user.role !== UserRoleEnum.ops && user.role !== UserRoleEnum.admin) {
               logWarning('Google OAuth account creation attempted by non-ops/admin user', {
                 email: user.email,
                 role: user.role,
@@ -116,7 +116,7 @@ export const auth = betterAuth({
               where: (users, { eq }) => eq(users.id, session.userId),
             });
 
-            if (user && user.role !== UserRoles.OPS.code && user.role !== UserRoles.ADMIN.code) {
+            if (user && user.role !== UserRoleEnum.ops && user.role !== UserRoleEnum.admin) {
               logWarning('Google OAuth session creation attempted by non-ops/admin user', {
                 email: user.email,
                 role: user.role,
@@ -147,12 +147,12 @@ export const auth = betterAuth({
           throw new Error('Email not registered');
         }
 
-        if (existingUser.participantType === ParticipantTypes.VIP.code) {
+        if (existingUser.participantType === ParticipantTypeEnum.vip) {
           logWarning('VIP user attempted magic link login', { email });
           throw new Error('VIP users cannot login via magic link');
         }
 
-        if (existingUser.role === UserRoles.OPS.code || existingUser.role === UserRoles.ADMIN.code) {
+        if (existingUser.role === UserRoleEnum.ops || existingUser.role === UserRoleEnum.admin) {
           logWarning('Ops/Admin user attempted magic link login', { email, role: existingUser.role });
           throw new Error('Ops and admin users must login via Google OAuth');
         }

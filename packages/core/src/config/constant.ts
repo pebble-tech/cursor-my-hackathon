@@ -36,6 +36,11 @@ export const ParticipantTypeCodes = generateCodes(ParticipantTypes);
 export const ParticipantTypeEnum = createEnumObject(ParticipantTypeCodes);
 export type ParticipantType = (typeof ParticipantTypeEnum)[keyof typeof ParticipantTypeEnum];
 
+// User Type (UI concept combining roles and participant types)
+export type UserType = 'vip' | 'ops' | 'admin' | 'regular';
+export const UserTypeCodes: [UserType, ...UserType[]] = ['vip', 'ops', 'admin', 'regular'];
+export const UserTypeEnum = createEnumObject(UserTypeCodes);
+
 // Participant Status
 export const ParticipantStatuses = {
   REGISTERED: { code: 'registered' as const, label: 'Registered' },

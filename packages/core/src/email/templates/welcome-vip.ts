@@ -54,7 +54,7 @@ export async function sendVIPWelcomeEmail({ to, name, qrCodeValue }: SendVIPWelc
               </div>
 
               <hr style="margin: 32px 0; border: none; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 13px; line-height: 20px; color: #71717a;">Save this email or screenshot your QR code for easy access during the event. If you have any questions, reply to this email.</p>
+              <p style="margin: 0; font-size: 13px; line-height: 20px; color: #71717a;">Save this email or screenshot your QR code for easy access during the event.</p>
             </td>
           </tr>
         </table>
@@ -84,7 +84,7 @@ FOOD SCHEDULE
 Day 1 (Dec 6): Lunch, Dinner, Midnight Snack
 Day 2 (Dec 7): Breakfast, Lunch
 
-Save this email or screenshot your QR code for easy access during the event. If you have any questions, reply to this email.`;
+Save this email or screenshot your QR code for easy access during the event.`;
 
   return sendEmail({
     to,

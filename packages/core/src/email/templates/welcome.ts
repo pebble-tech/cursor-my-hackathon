@@ -71,9 +71,7 @@ Venue: Level 2, Monash University Malaysia
 HOW TO LOGIN
 Use your registered email to request a magic link at the platform. No password needed!
 
-Platform: ${platformUrl}/login
-
-If you have any questions, reply to this email. See you at the hackathon!`;
+Platform: ${platformUrl}/login`;
 
   return sendEmail({
     to,

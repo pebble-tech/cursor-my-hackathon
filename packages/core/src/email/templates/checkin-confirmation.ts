@@ -99,7 +99,7 @@ export async function sendCheckinConfirmationEmail({
               </div>
 
               <hr style="margin: 32px 0; border: none; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 13px; line-height: 20px; color: #71717a;">You can view all your credits and QR code anytime in your <a href="${env.APP_BASE_URL}/dashboard" target="_blank" style="color: #18181b; text-decoration: underline;">dashboard</a>. If you have any questions, reply to this email.</p>
+              <p style="margin: 0; font-size: 13px; line-height: 20px; color: #71717a;">You can view all your credits and QR code anytime in your <a href="${env.APP_BASE_URL}/dashboard" target="_blank" style="color: #18181b; text-decoration: underline;">dashboard</a>.</p>
             </td>
           </tr>
         </table>

@@ -4,6 +4,14 @@ import { createFileRoute } from '@tanstack/react-router';
 import { type ColumnDef } from '@tanstack/react-table';
 import { AlertCircle, CheckCircle2, Download, Edit, Loader2, Mail, Plus, Search, Trash2, Upload } from 'lucide-react';
 
+import {
+  ParticipantType,
+  ParticipantTypeEnum,
+  UserRole,
+  UserRoleEnum,
+  UserType,
+  UserTypeEnum,
+} from '@base/core/config/constant';
 import { Button } from '@base/ui/components/button';
 import { DataTable } from '@base/ui/components/data-table';
 import {
@@ -161,7 +169,7 @@ function ParticipantsPage() {
 
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserType, setNewUserType] = useState<'vip' | 'ops' | 'admin'>('vip');
+  const [newUserType, setNewUserType] = useState<UserType>(UserTypeEnum.vip);
   const [originalRole, setOriginalRole] = useState<string | null>(null);
   const [originalParticipantType, setOriginalParticipantType] = useState<string | null>(null);
 
@@ -175,8 +183,8 @@ function ParticipantsPage() {
     pageSize: pagination.pageSize,
     search: search || undefined,
     status: statusFilter !== 'all' ? (statusFilter as 'registered' | 'checked_in') : undefined,
-    participantType: typeFilter !== 'all' ? (typeFilter as 'regular' | 'vip') : undefined,
-    role: roleFilter !== 'all' ? (roleFilter as 'participant' | 'ops' | 'admin') : undefined,
+    participantType: typeFilter !== 'all' ? (typeFilter as ParticipantType) : undefined,
+    role: roleFilter !== 'all' ? (roleFilter as UserRole) : undefined,
     sortBy: 'createdAt',
     sortOrder: 'desc',
   };
@@ -213,7 +221,7 @@ function ParticipantsPage() {
       setAddUserDialogOpen(false);
       setNewUserName('');
       setNewUserEmail('');
-      setNewUserType('vip');
+      setNewUserType(UserTypeEnum.vip);
     },
   });
 
@@ -305,13 +313,18 @@ function ParticipantsPage() {
     setEditingUser(participant);
     setNewUserName(participant.name);
     setNewUserEmail(participant.email);
-    let userType: 'vip' | 'ops' | 'admin' = 'vip';
-    if (participant.role === 'admin') {
-      userType = 'admin';
-    } else if (participant.role === 'ops') {
-      userType = 'ops';
-    } else if (participant.participantType === 'vip') {
-      userType = 'vip';
+    let userType: UserType = UserTypeEnum.vip;
+    if (participant.role === UserRoleEnum.admin) {
+      userType = UserTypeEnum.admin;
+    } else if (participant.role === UserRoleEnum.ops) {
+      userType = UserTypeEnum.ops;
+    } else if (
+      participant.role === UserRoleEnum.participant &&
+      participant.participantType === ParticipantTypeEnum.regular
+    ) {
+      userType = UserTypeEnum.regular;
+    } else if (participant.participantType === ParticipantTypeEnum.vip) {
+      userType = UserTypeEnum.vip;
     }
     setNewUserType(userType);
     setOriginalRole(participant.role);
@@ -333,18 +346,21 @@ function ParticipantsPage() {
       email: newUserEmail,
     };
 
-    let newRole: 'participant' | 'ops' | 'admin' = 'participant';
-    let newParticipantType: 'regular' | 'vip' = 'regular';
+    let newRole: UserRole = UserRoleEnum.participant;
+    let newParticipantType: ParticipantType = ParticipantTypeEnum.regular;
 
-    if (newUserType === 'admin') {
-      newRole = 'admin';
-      newParticipantType = 'regular';
-    } else if (newUserType === 'ops') {
-      newRole = 'ops';
-      newParticipantType = 'regular';
+    if (newUserType === UserTypeEnum.admin) {
+      newRole = UserRoleEnum.admin;
+      newParticipantType = ParticipantTypeEnum.regular;
+    } else if (newUserType === UserTypeEnum.ops) {
+      newRole = UserRoleEnum.ops;
+      newParticipantType = ParticipantTypeEnum.regular;
+    } else if (newUserType === UserTypeEnum.regular) {
+      newRole = UserRoleEnum.participant;
+      newParticipantType = ParticipantTypeEnum.regular;
     } else {
-      newRole = 'participant';
-      newParticipantType = 'vip';
+      newRole = UserRoleEnum.participant;
+      newParticipantType = ParticipantTypeEnum.vip;
     }
 
     if (newRole !== originalRole) {
@@ -617,11 +633,12 @@ function ParticipantsPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">User Type</label>
-                  <Select value={newUserType} onValueChange={(v) => setNewUserType(v as 'vip' | 'ops' | 'admin')}>
+                  <Select value={newUserType} onValueChange={(v) => setNewUserType(v as UserType)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="regular">Regular Participant</SelectItem>
                       <SelectItem value="vip">VIP (Cannot login, QR only)</SelectItem>
                       <SelectItem value="ops">Ops (Magic link login)</SelectItem>
                       <SelectItem value="admin">Admin (Google OAuth login)</SelectItem>
@@ -754,7 +771,7 @@ function ParticipantsPage() {
             setEditingUser(null);
             setNewUserName('');
             setNewUserEmail('');
-            setNewUserType('vip');
+            setNewUserType(UserTypeEnum.vip);
             setOriginalRole(null);
             setOriginalParticipantType(null);
           }
@@ -784,11 +801,12 @@ function ParticipantsPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">User Type</label>
-              <Select value={newUserType} onValueChange={(v) => setNewUserType(v as 'vip' | 'ops' | 'admin')}>
+              <Select value={newUserType} onValueChange={(v) => setNewUserType(v as UserType)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="regular">Regular Participant</SelectItem>
                   <SelectItem value="vip">VIP (Cannot login, QR only)</SelectItem>
                   <SelectItem value="ops">Ops (Magic link login)</SelectItem>
                   <SelectItem value="admin">Admin (Google OAuth login)</SelectItem>
