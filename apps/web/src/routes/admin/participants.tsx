@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { type ColumnDef } from '@tanstack/react-table';
-import { AlertCircle, CheckCircle2, Download, Loader2, Mail, Plus, Search, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Download, Edit, Loader2, Mail, Plus, Search, Trash2, Upload } from 'lucide-react';
 
 import { Button } from '@base/ui/components/button';
 import { DataTable } from '@base/ui/components/data-table';
@@ -22,10 +22,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getWelcomeEmailStats, sendWelcomeEmails } from '~/apis/admin/emails';
 import {
   createUser,
+  deleteUser,
   importParticipants,
   listParticipants,
+  updateUser,
   type CreateUserInput,
+  type DeleteUserInput,
   type ListParticipantsInput,
+  type UpdateUserInput,
 } from '~/apis/admin/participants';
 import { generateSkippedRowsCSV, parseParticipantsCSV, type ParsedRow } from '~/utils/csv-parser';
 
@@ -107,6 +111,32 @@ const columns: ColumnDef<Participant>[] = [
       );
     },
   },
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row, table }) => {
+      const participant = row.original;
+      const meta = table.options.meta as {
+        onEdit?: (participant: Participant) => void;
+        onDelete?: (participant: Participant) => void;
+      };
+      return (
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => meta.onEdit?.(participant)} className="h-8 w-8 p-0">
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => meta.onDelete?.(participant)}
+            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      );
+    },
+  },
 ];
 
 function ParticipantsPage() {
@@ -119,7 +149,11 @@ function ParticipantsPage() {
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<Participant | null>(null);
+  const [deletingUser, setDeletingUser] = useState<Participant | null>(null);
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -128,6 +162,8 @@ function ParticipantsPage() {
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserType, setNewUserType] = useState<'vip' | 'ops' | 'admin'>('vip');
+  const [originalRole, setOriginalRole] = useState<string | null>(null);
+  const [originalParticipantType, setOriginalParticipantType] = useState<string | null>(null);
 
   const [importResult, setImportResult] = useState<{
     imported: number;
@@ -178,6 +214,24 @@ function ParticipantsPage() {
       setNewUserName('');
       setNewUserEmail('');
       setNewUserType('vip');
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: (input: UpdateUserInput) => updateUser({ data: input }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['participants'] });
+      setEditUserDialogOpen(false);
+      setEditingUser(null);
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (input: DeleteUserInput) => deleteUser({ data: input }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['participants'] });
+      setDeleteUserDialogOpen(false);
+      setDeletingUser(null);
     },
   });
 
@@ -245,6 +299,67 @@ function ParticipantsPage() {
     setParsedRows([]);
     setParseError(null);
     setImportResult(null);
+  };
+
+  const handleEdit = (participant: Participant) => {
+    setEditingUser(participant);
+    setNewUserName(participant.name);
+    setNewUserEmail(participant.email);
+    let userType: 'vip' | 'ops' | 'admin' = 'vip';
+    if (participant.role === 'admin') {
+      userType = 'admin';
+    } else if (participant.role === 'ops') {
+      userType = 'ops';
+    } else if (participant.participantType === 'vip') {
+      userType = 'vip';
+    }
+    setNewUserType(userType);
+    setOriginalRole(participant.role);
+    setOriginalParticipantType(participant.participantType);
+    setEditUserDialogOpen(true);
+  };
+
+  const handleDelete = (participant: Participant) => {
+    setDeletingUser(participant);
+    setDeleteUserDialogOpen(true);
+  };
+
+  const handleUpdateUser = () => {
+    if (!editingUser || !newUserName || !newUserEmail || !originalRole || !originalParticipantType) return;
+
+    const updateData: UpdateUserInput = {
+      id: editingUser.id,
+      name: newUserName,
+      email: newUserEmail,
+    };
+
+    let newRole: 'participant' | 'ops' | 'admin' = 'participant';
+    let newParticipantType: 'regular' | 'vip' = 'regular';
+
+    if (newUserType === 'admin') {
+      newRole = 'admin';
+      newParticipantType = 'regular';
+    } else if (newUserType === 'ops') {
+      newRole = 'ops';
+      newParticipantType = 'regular';
+    } else {
+      newRole = 'participant';
+      newParticipantType = 'vip';
+    }
+
+    if (newRole !== originalRole) {
+      updateData.role = newRole;
+    }
+    if (newParticipantType !== originalParticipantType) {
+      updateData.participantType = newParticipantType;
+    }
+
+    updateUserMutation.mutate(updateData);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingUser) return;
+    deleteUserMutation.mutate({ id: deletingUser.id });
   };
 
   return (
@@ -623,8 +738,125 @@ function ParticipantsPage() {
           pagination={pagination}
           onPaginationChange={setPagination}
           isLoading={isLoading}
+          meta={{
+            onEdit: handleEdit,
+            onDelete: handleDelete,
+          }}
         />
       </div>
+
+      {/* Edit User Dialog */}
+      <Dialog
+        open={editUserDialogOpen}
+        onOpenChange={(open) => {
+          setEditUserDialogOpen(open);
+          if (!open) {
+            setEditingUser(null);
+            setNewUserName('');
+            setNewUserEmail('');
+            setNewUserType('vip');
+            setOriginalRole(null);
+            setOriginalParticipantType(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user information.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Name</label>
+              <Input placeholder="John Doe" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                type="email"
+                placeholder="john@example.com"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">User Type</label>
+              <Select value={newUserType} onValueChange={(v) => setNewUserType(v as 'vip' | 'ops' | 'admin')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vip">VIP (Cannot login, QR only)</SelectItem>
+                  <SelectItem value="ops">Ops (Magic link login)</SelectItem>
+                  <SelectItem value="admin">Admin (Google OAuth login)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {updateUserMutation.isError && (
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                <AlertCircle className="h-4 w-4" />
+                {(updateUserMutation.error as Error).message}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUserDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={!newUserName || !newUserEmail || updateUserMutation.isPending}>
+              {updateUserMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update User'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={deleteUserDialogOpen} onOpenChange={setDeleteUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {deletingUser?.name} ({deletingUser?.email})? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteUserMutation.isError && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4" />
+              {(deleteUserMutation.error as Error).message}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteUserDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={deleteUserMutation.isPending}>
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete User'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

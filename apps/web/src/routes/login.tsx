@@ -52,16 +52,18 @@ function LoginPage() {
   const handleGoogle = async () => {
     setError(null);
     setLoading(true);
-    try {
-      await authClient.signIn.social({
-        provider: 'google',
-        callbackURL: '/',
-      });
-      // Redirect happens automatically
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
-      setLoading(false);
+
+    const { error } = await authClient.signIn.social({
+      provider: 'google',
+      callbackURL: '/',
+    });
+
+    if (error) {
+      setError(error.message || 'Failed to sign in with Google');
     }
+    // Redirect happens automatically on success
+
+    setLoading(false);
   };
 
   return (
@@ -127,7 +129,7 @@ function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
                   />
-                  <p className="mt-1 text-xs text-gray-500">For participants & ops. VIPs cannot login.</p>
+                  <p className="mt-1 text-xs text-gray-500">For participants only. VIPs cannot login.</p>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -166,7 +168,7 @@ function LoginPage() {
                 )}
                 Continue with Google
               </Button>
-              <p className="mt-2 text-center text-xs text-gray-500">For administrators only</p>
+              <p className="mt-2 text-center text-xs text-gray-500">For ops & administrators</p>
             </div>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { APIError } from 'better-auth/api';
 import { magicLink } from 'better-auth/plugins';
 
 import { ParticipantStatuses, ParticipantTypes, UserRoles } from '~/config/constant';
@@ -68,6 +69,70 @@ export const auth = betterAuth({
       },
     },
   },
+  databaseHooks: {
+    account: {
+      create: {
+        after: async (account) => {
+          // Validate Google OAuth users must have ops or admin role
+          if (account.providerId === 'google') {
+            const user = await db.query.users.findFirst({
+              where: (users, { eq }) => eq(users.id, account.userId),
+            });
+
+            if (!user) {
+              logWarning('Google OAuth account creation attempted for non-existent user', {
+                userId: account.userId,
+              });
+              throw new APIError('BAD_REQUEST', {
+                message: 'Email not registered. Please contact administrator.',
+              });
+            }
+
+            if (user.role !== UserRoles.OPS.code && user.role !== UserRoles.ADMIN.code) {
+              logWarning('Google OAuth account creation attempted by non-ops/admin user', {
+                email: user.email,
+                role: user.role,
+                userId: account.userId,
+              });
+              throw new APIError('FORBIDDEN', {
+                message: 'Google OAuth is only available for ops and admin users. Please use magic link.',
+              });
+            }
+          }
+        },
+      },
+    },
+    session: {
+      create: {
+        before: async (session) => {
+          // Check if user has a Google account - if so, validate role
+          const googleAccount = await db.query.accounts.findFirst({
+            where: (accounts, { and, eq }) =>
+              and(eq(accounts.userId, session.userId), eq(accounts.providerId, 'google')),
+          });
+
+          if (googleAccount) {
+            const user = await db.query.users.findFirst({
+              where: (users, { eq }) => eq(users.id, session.userId),
+            });
+
+            if (user && user.role !== UserRoles.OPS.code && user.role !== UserRoles.ADMIN.code) {
+              logWarning('Google OAuth session creation attempted by non-ops/admin user', {
+                email: user.email,
+                role: user.role,
+                userId: session.userId,
+              });
+              throw new APIError('FORBIDDEN', {
+                message: 'Google OAuth is only available for ops and admin users. Please use magic link.',
+              });
+            }
+          }
+
+          return { data: session };
+        },
+      },
+    },
+  },
   plugins: [
     magicLink({
       expiresIn: 3600,
@@ -85,6 +150,11 @@ export const auth = betterAuth({
         if (existingUser.participantType === ParticipantTypes.VIP.code) {
           logWarning('VIP user attempted magic link login', { email });
           throw new Error('VIP users cannot login via magic link');
+        }
+
+        if (existingUser.role === UserRoles.OPS.code || existingUser.role === UserRoles.ADMIN.code) {
+          logWarning('Ops/Admin user attempted magic link login', { email, role: existingUser.role });
+          throw new Error('Ops and admin users must login via Google OAuth');
         }
 
         const result = await sendMagicLinkEmail({

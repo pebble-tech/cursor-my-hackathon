@@ -20,6 +20,7 @@ interface DataTableProps<TData, TValue> {
   pagination?: PaginationState;
   onPaginationChange?: OnChangeFn<PaginationState>;
   isLoading?: boolean;
+  meta?: Record<string, unknown>;
 }
 
 export function DataTable<TData, TValue>({
@@ -29,6 +30,7 @@ export function DataTable<TData, TValue>({
   pagination = { pageIndex: 0, pageSize: 10 },
   onPaginationChange,
   isLoading = false,
+  meta,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -41,6 +43,7 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     getPaginationRowModel: getPaginationRowModel(),
+    meta,
   });
 
   return (

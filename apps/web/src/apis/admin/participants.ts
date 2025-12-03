@@ -237,3 +237,95 @@ export const importParticipants = createServerFn({ method: 'POST' })
       skipped,
     };
   });
+
+const updateUserInputSchema = z.object({
+  id: z.string().min(1, 'User ID is required'),
+  name: z.string().min(1, 'Name is required').optional(),
+  email: z.string().email('Invalid email format').optional(),
+  role: z.enum(['participant', 'ops', 'admin']).optional(),
+  participantType: z.enum(['regular', 'vip']).optional(),
+  status: z.enum(['registered', 'checked_in']).optional(),
+});
+
+export type UpdateUserInput = z.infer<typeof updateUserInputSchema>;
+
+export const updateUser = createServerFn({ method: 'POST' })
+  .validator((data: UpdateUserInput) => updateUserInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+
+    const { id, name, email, role, participantType, status } = data;
+
+    const existing = await db.query.users.findFirst({
+      where: eq(UsersTable.id, id),
+    });
+
+    if (!existing) {
+      throw new Error('User not found');
+    }
+
+    const updateData: Partial<typeof UsersTable.$inferInsert> = {};
+
+    if (name !== undefined) {
+      updateData.name = name;
+    }
+
+    if (email !== undefined) {
+      const normalizedEmail = email.toLowerCase().trim();
+      if (normalizedEmail !== existing.email) {
+        const emailExists = await db.query.users.findFirst({
+          where: eq(UsersTable.email, normalizedEmail),
+        });
+        if (emailExists) {
+          throw new Error('Email already registered');
+        }
+        updateData.email = normalizedEmail;
+      }
+    }
+
+    if (role !== undefined) {
+      updateData.role = role;
+    }
+
+    if (participantType !== undefined) {
+      updateData.participantType = participantType;
+    }
+
+    if (status !== undefined) {
+      updateData.status = status;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return { user: existing };
+    }
+
+    const [updatedUser] = await db.update(UsersTable).set(updateData).where(eq(UsersTable.id, id)).returning();
+
+    return { user: updatedUser };
+  });
+
+const deleteUserInputSchema = z.object({
+  id: z.string().min(1, 'User ID is required'),
+});
+
+export type DeleteUserInput = z.infer<typeof deleteUserInputSchema>;
+
+export const deleteUser = createServerFn({ method: 'POST' })
+  .validator((data: DeleteUserInput) => deleteUserInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+
+    const { id } = data;
+
+    const existing = await db.query.users.findFirst({
+      where: eq(UsersTable.id, id),
+    });
+
+    if (!existing) {
+      throw new Error('User not found');
+    }
+
+    await db.delete(UsersTable).where(eq(UsersTable.id, id));
+
+    return { success: true };
+  });
