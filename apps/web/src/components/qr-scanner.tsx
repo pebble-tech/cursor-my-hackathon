@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 type QRScannerProps = {
   onScan: (decodedText: string) => void;
@@ -8,84 +8,36 @@ type QRScannerProps = {
 };
 
 export function QRScanner({ onScan, onError, paused = false }: QRScannerProps) {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isScanningRef = useRef(false);
-  const onScanRef = useRef(onScan);
-  const onErrorRef = useRef(onError);
+  const hasScannedRef = useRef(false);
 
   useEffect(() => {
-    onScanRef.current = onScan;
-  }, [onScan]);
-
-  useEffect(() => {
-    onErrorRef.current = onError;
-  }, [onError]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const scannerId = 'qr-scanner-container';
-    container.innerHTML = `<div id="${scannerId}"></div>`;
-
-    const html5Qrcode = new Html5Qrcode(scannerId);
-
-    const config = {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-      facingMode: 'environment' as const,
-    };
-
-    html5Qrcode
-      .start(
-        { facingMode: 'environment' },
-        config,
-        (decodedText) => {
-          if (!isScanningRef.current) return;
-          isScanningRef.current = false;
-          onScanRef.current(decodedText);
-        },
-        () => {}
-      )
-      .then(() => {
-        scannerRef.current = html5Qrcode;
-        setIsInitialized(true);
-        isScanningRef.current = true;
-      })
-      .catch((err) => {
-        const errorMessage = err.message || 'Failed to start camera';
-        setError(errorMessage);
-        if (onErrorRef.current) {
-          onErrorRef.current(errorMessage);
-        }
-      });
-
-    return () => {
-      isScanningRef.current = false;
-      if (scannerRef.current) {
-        scannerRef.current
-          .stop()
-          .then(() => {
-            scannerRef.current?.clear();
-          })
-          .catch(() => {});
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!scannerRef.current || !isInitialized) return;
-
-    if (paused) {
-      isScanningRef.current = false;
-    } else {
-      isScanningRef.current = true;
+    if (!paused) {
+      hasScannedRef.current = false;
     }
-  }, [paused, isInitialized]);
+  }, [paused]);
+
+  const handleScan = useCallback(
+    (results: { rawValue: string }[]) => {
+      if (paused || hasScannedRef.current) return;
+
+      const result = results[0];
+      if (result?.rawValue) {
+        hasScannedRef.current = true;
+        onScan(result.rawValue);
+      }
+    },
+    [paused, onScan]
+  );
+
+  const handleError = useCallback(
+    (err: unknown) => {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to access camera';
+      setError(errorMessage);
+      onError?.(errorMessage);
+    },
+    [onError]
+  );
 
   if (error) {
     return (
@@ -100,8 +52,16 @@ export function QRScanner({ onScan, onError, paused = false }: QRScannerProps) {
   }
 
   return (
-    <div className="relative">
-      <div ref={containerRef} className="rounded-lg border border-gray-200 bg-gray-50" />
+    <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-gray-200 bg-black">
+      <Scanner
+        onScan={handleScan}
+        onError={handleError}
+        paused={paused}
+        formats={['qr_code']}
+        sound={false}
+        components={{ finder: true }}
+        constraints={{ facingMode: 'environment' }}
+      />
     </div>
   );
 }
