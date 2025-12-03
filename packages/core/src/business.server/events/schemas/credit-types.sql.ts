@@ -1,5 +1,6 @@
 import { boolean, index, integer, pgTable, text } from 'drizzle-orm/pg-core';
 
+import { CodeDistributionTypeCodes } from '../../../config/constant';
 import { cuidId, timestamps } from '../../../drizzle.server/types';
 
 export const CreditTypesTable = pgTable(
@@ -13,6 +14,9 @@ export const CreditTypesTable = pgTable(
     displayOrder: integer('display_order').notNull().default(0),
     iconUrl: text('icon_url'),
     isActive: boolean('is_active').notNull().default(true),
+    distributionType: text('distribution_type', { enum: CodeDistributionTypeCodes }).notNull().default('unique'),
+    universalCode: text('universal_code'),
+    universalRedeemUrl: text('universal_redeem_url'),
     ...timestamps,
   },
   (table) => [

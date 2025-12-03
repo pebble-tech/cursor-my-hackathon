@@ -17,6 +17,8 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminParticipantsRouteImport } from './routes/admin/participants'
+import { Route as AdminCreditsRouteImport } from './routes/admin/credits'
+import { Route as AdminCheckinsRouteImport } from './routes/admin/checkins'
 import { ServerRoute as ApiAuthSplatServerRouteImport } from './routes/api.auth.$'
 
 const rootServerRouteImport = createServerRootRoute()
@@ -51,6 +53,16 @@ const AdminParticipantsRoute = AdminParticipantsRouteImport.update({
   path: '/participants',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCreditsRoute = AdminCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCheckinsRoute = AdminCheckinsRouteImport.update({
+  id: '/checkins',
+  path: '/checkins',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -62,6 +74,8 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/admin/checkins': typeof AdminCheckinsRoute
+  '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -69,6 +83,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/admin/checkins': typeof AdminCheckinsRoute
+  '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -78,6 +94,8 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/admin/checkins': typeof AdminCheckinsRoute
+  '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -88,16 +106,27 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/login'
+    | '/admin/checkins'
+    | '/admin/credits'
     | '/admin/participants'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/admin/participants' | '/admin'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/admin/checkins'
+    | '/admin/credits'
+    | '/admin/participants'
+    | '/admin'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/dashboard'
     | '/login'
+    | '/admin/checkins'
+    | '/admin/credits'
     | '/admin/participants'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -174,6 +203,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminParticipantsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/credits': {
+      id: '/admin/credits'
+      path: '/credits'
+      fullPath: '/admin/credits'
+      preLoaderRoute: typeof AdminCreditsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/checkins': {
+      id: '/admin/checkins'
+      path: '/checkins'
+      fullPath: '/admin/checkins'
+      preLoaderRoute: typeof AdminCheckinsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 declare module '@tanstack/react-start/server' {
@@ -189,11 +232,15 @@ declare module '@tanstack/react-start/server' {
 }
 
 interface AdminRouteChildren {
+  AdminCheckinsRoute: typeof AdminCheckinsRoute
+  AdminCreditsRoute: typeof AdminCreditsRoute
   AdminParticipantsRoute: typeof AdminParticipantsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCheckinsRoute: AdminCheckinsRoute,
+  AdminCreditsRoute: AdminCreditsRoute,
   AdminParticipantsRoute: AdminParticipantsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

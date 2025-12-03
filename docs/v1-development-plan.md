@@ -17,7 +17,7 @@
 │                              │                 │                             │
 │                              │                 ├──► Phase 3: Participant UI ✅│
 │                              │                 │                             │
-│                              │                 └──► Phase 4: Credits Mgmt    │
+│                              │                 └──► Phase 4: Credits+Checkins ✅
 │                              │                           │                   │
 │                              │                           ▼                   │
 │                              │              Phase 5: Registration Check-in   │
@@ -217,45 +217,67 @@ Route Structure:
 
 ---
 
-## Phase 4: Admin - Credits Management
+## Phase 4: Admin - Credits & Check-in Types Management
 
-**Status:** Not Started  
+**Status:** ✅ Completed  
 **Priority:** High  
-**Estimated Effort:** 0.5 day  
+**Estimated Effort:** 1 day  
 **Dependencies:** Phase 1
 
 ### Tasks
 
-- [ ] 4.1 Credit type creation form
-  - [ ] Name (internal key)
-  - [ ] Display name
-  - [ ] Email instructions
-  - [ ] Web instructions (rich text)
-  - [ ] Display order
-  - [ ] Icon URL (optional)
-  - [ ] Active toggle
+#### Check-in Types Management
 
-- [ ] 4.2 Credit type list view
-  - [ ] Table with all credit types
-  - [ ] Edit/toggle active actions
+- [x] 4.1 Check-in type creation form
+  - [x] Name (e.g., "Day 1 Attendance", "Day 1 Lunch")
+  - [x] Type selector (attendance | meal)
+  - [x] Description (optional, shown to ops)
+  - [x] Display order
+  - [x] Active toggle
 
-- [ ] 4.3 Code CSV import per credit type
-  - [ ] Select credit type
-  - [ ] Upload CSV (code, redeem_url)
-  - [ ] Preview and confirm
-  - [ ] Duplicate detection
+- [x] 4.2 Check-in type list view
+  - [x] Table with all check-in types (ordered by displayOrder)
+  - [x] Edit/toggle active actions
+  - [x] Delete action (only if no records exist)
 
-- [ ] 4.4 Code pool status display
-  - [ ] Total codes per type
-  - [ ] Assigned count
-  - [ ] Remaining count
-  - [ ] Visual indicator (green/yellow/red)
+#### Credit Types Management
+
+- [x] 4.3 Credit type creation form
+  - [x] Name (internal key)
+  - [x] Display name
+  - [x] Distribution type (unique or universal)
+  - [x] Universal code fields (code, redeem URL, quantity)
+  - [x] Email instructions
+  - [x] Web instructions
+  - [x] Display order
+  - [x] Icon URL (optional)
+  - [x] Active toggle
+
+- [x] 4.4 Credit type list view
+  - [x] Table with all credit types
+  - [x] Edit/toggle active/delete actions
+
+- [x] 4.5 Code CSV import per credit type
+  - [x] Select credit type (unique distribution only)
+  - [x] Upload CSV (code, redeem_url optional)
+  - [x] Preview and confirm
+  - [x] Duplicate detection
+  - [x] Code uppercase normalization
+
+- [x] 4.6 Code pool status display
+  - [x] Total codes per type
+  - [x] Assigned count
+  - [x] Remaining count
+  - [x] Visual indicator (green/yellow/red)
 
 ### Deliverable
 
-- Admin can create 6 credit types (Cursor, Anthropic, etc.)
-- Admin can import codes for each type
-- Pool status visible
+- ✅ Admin can create check-in types (Day 1 Attendance, Day 1 Lunch, Day 1 Dinner, Day 2 Attendance, Day 2 Breakfast)
+- ✅ Admin can create credit types with unique or universal distribution
+- ✅ Admin can import codes for unique distribution types
+- ✅ Universal codes auto-generated on creation
+- ✅ Pool status visible with color-coded indicators
+- ✅ Credit types can be deleted if no codes assigned
 
 ---
 
@@ -512,7 +534,7 @@ Route Structure:
 | 1           | Run migrations, test magic link login flow                  | ✅     |
 | 2           | Import 10 test users from CSV, verify QR generated          | ✅     |
 | 3           | Login as participant, view QR, test copy button             | ✅     |
-| 4           | Create credit type, import 10 codes                         |        |
+| 4           | Create check-in types, create credit type, import 10 codes  |        |
 | 5           | Full check-in: scan → status update → codes assigned        |        |
 | 6           | Check-in type selection, check-in scan, duplicate rejection |        |
 | 7           | Receive all email types in inbox                            |        |

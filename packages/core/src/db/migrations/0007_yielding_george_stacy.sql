@@ -1,0 +1,1 @@
+ALTER TABLE "codes" DROP CONSTRAINT "codes_credit_type_code_value_unq";

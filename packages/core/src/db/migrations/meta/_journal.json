@@ -43,6 +43,20 @@
       "when": 1764683916730,
       "tag": "0005_fantastic_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1764729927311,
+      "tag": "0006_dizzy_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1764730872602,
+      "tag": "0007_yielding_george_stacy",
+      "breakpoints": true
     }
   ]
 }

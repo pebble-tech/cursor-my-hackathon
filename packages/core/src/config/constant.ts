@@ -63,3 +63,12 @@ export const CheckinTypeCategories = {
 export const CheckinTypeCategoryCodes = generateCodes(CheckinTypeCategories);
 export const CheckinTypeCategoryEnum = createEnumObject(CheckinTypeCategoryCodes);
 export type CheckinTypeCategory = (typeof CheckinTypeCategoryEnum)[keyof typeof CheckinTypeCategoryEnum];
+
+// Code Distribution Types
+export const CodeDistributionTypes = {
+  UNIQUE: { code: 'unique' as const, label: 'Unique (1 code per participant)' },
+  UNIVERSAL: { code: 'universal' as const, label: 'Universal (same code for all)' },
+};
+export const CodeDistributionTypeCodes = generateCodes(CodeDistributionTypes);
+export const CodeDistributionTypeEnum = createEnumObject(CodeDistributionTypeCodes);
+export type CodeDistributionType = (typeof CodeDistributionTypeEnum)[keyof typeof CodeDistributionTypeEnum];

@@ -114,3 +114,103 @@ export function generateSkippedRowsCSV(skippedRows: Array<{ row: number; email: 
 
   return Papa.unparse(data);
 }
+
+export type ParsedCode = {
+  codeValue: string;
+  redeemUrl?: string;
+};
+
+export type ParsedCodeRow = {
+  row: number;
+  data: ParsedCode;
+  valid: boolean;
+  error?: string;
+};
+
+export type CodeCSVParseResult = {
+  success: boolean;
+  rows: ParsedCodeRow[];
+  validCount: number;
+  invalidCount: number;
+  error?: string;
+};
+
+export function parseCodesCSV(csvContent: string): CodeCSVParseResult {
+  const result = Papa.parse<Record<string, string>>(csvContent, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (header) => header.trim().toLowerCase(),
+  });
+
+  if (result.errors.length > 0 && result.data.length === 0) {
+    return {
+      success: false,
+      rows: [],
+      validCount: 0,
+      invalidCount: 0,
+      error: `CSV parsing error: ${result.errors[0].message}`,
+    };
+  }
+
+  const headers = result.meta.fields?.map((f) => f.toLowerCase()) || [];
+
+  if (!headers.includes('code')) {
+    return {
+      success: false,
+      rows: [],
+      validCount: 0,
+      invalidCount: 0,
+      error: 'Missing required column: code',
+    };
+  }
+
+  const rows: ParsedCodeRow[] = [];
+  let validCount = 0;
+  let invalidCount = 0;
+  const seenCodes = new Set<string>();
+
+  result.data.forEach((row, index) => {
+    const codeValue = (row['code'] || '').trim().toUpperCase();
+    const redeemUrl = (row['redeem_url'] || row['redeem url'] || row['redeemurl'] || '').trim() || undefined;
+
+    const parsedRow: ParsedCodeRow = {
+      row: index + 1,
+      data: { codeValue, redeemUrl },
+      valid: true,
+    };
+
+    if (!codeValue) {
+      parsedRow.valid = false;
+      parsedRow.error = 'Code is required';
+    } else if (seenCodes.has(codeValue)) {
+      parsedRow.valid = false;
+      parsedRow.error = 'Duplicate code in file';
+    } else {
+      seenCodes.add(codeValue);
+    }
+
+    if (parsedRow.valid) {
+      validCount++;
+    } else {
+      invalidCount++;
+    }
+
+    rows.push(parsedRow);
+  });
+
+  return {
+    success: true,
+    rows,
+    validCount,
+    invalidCount,
+  };
+}
+
+export function generateSkippedCodesCSV(skippedCodes: Array<{ codeValue: string; reason: string }>): string {
+  const data = skippedCodes.map((c) => ({
+    code: c.codeValue,
+    reason: c.reason,
+  }));
+
+  return Papa.unparse(data);
+}

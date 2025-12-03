@@ -23,7 +23,6 @@ export const CodesTable = pgTable(
   (table) => [
     index('codes_credit_type_status_idx').on(table.creditTypeId, table.status),
     index('codes_assigned_to_idx').on(table.assignedTo),
-    unique('codes_credit_type_code_value_unq').on(table.creditTypeId, table.codeValue),
   ]
 );
 
