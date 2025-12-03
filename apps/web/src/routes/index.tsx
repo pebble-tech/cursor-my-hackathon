@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { CalendarDays, MapPin } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { UserRoleEnum } from '@base/core/config/constant';
 import { Button } from '@base/ui/components/button';
@@ -20,23 +19,7 @@ function IndexComponent() {
   const navigate = useNavigate();
 
   const user = session?.user as User | undefined;
-
-  const handleDashboardClick = () => {
-    if (!user) {
-      navigate({ to: '/login' });
-      return;
-    }
-
-    const role = user.role;
-
-    if (role === UserRoleEnum.admin) {
-      navigate({ to: '/admin' });
-    } else if (role === UserRoleEnum.participant) {
-      navigate({ to: '/dashboard' });
-    } else if (role === UserRoleEnum.ops) {
-      toast.info('Ops dashboard coming soon');
-    }
-  };
+  const isAdmin = user?.role === UserRoleEnum.admin;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
@@ -64,10 +47,40 @@ function IndexComponent() {
           </div>
         </div>
 
-        <div className="pt-4">
-          <Button size="lg" className="w-full max-w-xs text-base" onClick={handleDashboardClick}>
-            {user ? 'Go to Dashboard' : 'Login'}
-          </Button>
+        <div className="flex flex-col items-center gap-3 pt-4">
+          {!user && (
+            <Button size="lg" className="w-full max-w-xs text-base" onClick={() => navigate({ to: '/login' })}>
+              Login
+            </Button>
+          )}
+
+          {user && isAdmin && (
+            <>
+              <Button size="lg" className="w-full max-w-xs text-base" onClick={() => navigate({ to: '/admin' })}>
+                Admin Dashboard
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full max-w-xs text-base"
+                onClick={() => navigate({ to: '/ops' })}
+              >
+                Ops Dashboard
+              </Button>
+            </>
+          )}
+
+          {user && user.role === UserRoleEnum.participant && (
+            <Button size="lg" className="w-full max-w-xs text-base" onClick={() => navigate({ to: '/dashboard' })}>
+              Go to Dashboard
+            </Button>
+          )}
+
+          {user && user.role === UserRoleEnum.ops && (
+            <Button size="lg" className="w-full max-w-xs text-base" onClick={() => navigate({ to: '/ops' })}>
+              Ops Dashboard
+            </Button>
+          )}
         </div>
 
         <WelcomeMessage userName={user?.name} />

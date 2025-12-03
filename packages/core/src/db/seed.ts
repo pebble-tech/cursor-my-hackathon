@@ -6,7 +6,7 @@ import { ParticipantStatuses, ParticipantTypes, UserRoles } from '~/config/const
 import { db, eq } from '~/drizzle.server';
 import { logError, logInfo } from '~/utils/logging';
 
-const ADMIN_EMAIL = 'kong@pebbletech.my';
+const ADMIN_EMAIL = 'mgongzai@gmail.com';
 
 async function seed() {
   logInfo('Starting database seed...');
