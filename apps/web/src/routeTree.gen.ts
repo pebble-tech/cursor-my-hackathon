@@ -11,10 +11,12 @@
 import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OpsRouteImport } from './routes/ops'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminParticipantsRouteImport } from './routes/admin/participants'
 import { Route as AdminCreditsRouteImport } from './routes/admin/credits'
@@ -23,6 +25,11 @@ import { ServerRoute as ApiAuthSplatServerRouteImport } from './routes/api.auth.
 
 const rootServerRouteImport = createServerRootRoute()
 
+const OpsRoute = OpsRouteImport.update({
+  id: '/ops',
+  path: '/ops',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -42,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OpsIndexRoute = OpsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OpsRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
@@ -74,10 +86,12 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/ops': typeof OpsRouteWithChildren
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
   '/admin/': typeof AdminIndexRoute
+  '/ops/': typeof OpsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -87,6 +101,7 @@ export interface FileRoutesByTo {
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
   '/admin': typeof AdminIndexRoute
+  '/ops': typeof OpsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -94,10 +109,12 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/ops': typeof OpsRouteWithChildren
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
   '/admin/': typeof AdminIndexRoute
+  '/ops/': typeof OpsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -106,10 +123,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/login'
+    | '/ops'
     | '/admin/checkins'
     | '/admin/credits'
     | '/admin/participants'
     | '/admin/'
+    | '/ops/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,16 +138,19 @@ export interface FileRouteTypes {
     | '/admin/credits'
     | '/admin/participants'
     | '/admin'
+    | '/ops'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/dashboard'
     | '/login'
+    | '/ops'
     | '/admin/checkins'
     | '/admin/credits'
     | '/admin/participants'
     | '/admin/'
+    | '/ops/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -136,6 +158,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  OpsRoute: typeof OpsRouteWithChildren
 }
 export interface FileServerRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatServerRoute
@@ -161,6 +184,13 @@ export interface RootServerRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/ops': {
+      id: '/ops'
+      path: '/ops'
+      fullPath: '/ops'
+      preLoaderRoute: typeof OpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -188,6 +218,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/ops/': {
+      id: '/ops/'
+      path: '/'
+      fullPath: '/ops/'
+      preLoaderRoute: typeof OpsIndexRouteImport
+      parentRoute: typeof OpsRoute
     }
     '/admin/': {
       id: '/admin/'
@@ -247,11 +284,22 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface OpsRouteChildren {
+  OpsIndexRoute: typeof OpsIndexRoute
+}
+
+const OpsRouteChildren: OpsRouteChildren = {
+  OpsIndexRoute: OpsIndexRoute,
+}
+
+const OpsRouteWithChildren = OpsRoute._addFileChildren(OpsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  OpsRoute: OpsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

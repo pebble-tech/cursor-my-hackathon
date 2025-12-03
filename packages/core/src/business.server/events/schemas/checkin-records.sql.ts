@@ -23,6 +23,7 @@ export const CheckinRecordsTable = pgTable(
     unique('checkin_records_type_participant_unq').on(table.checkinTypeId, table.participantId),
     index('checkin_records_participant_idx').on(table.participantId),
     index('checkin_records_checked_in_at_idx').on(table.checkedInAt),
+    index('checkin_records_checked_in_by_idx').on(table.checkedInBy),
   ]
 );
 

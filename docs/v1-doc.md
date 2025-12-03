@@ -635,8 +635,10 @@ You### 5. Credit Management System
 **Admin Workflow:**
 1. Navigate to Credit Management → Create Credit Type
 2. Fill form with required fields
-3. Save credit type
-4. Credit type becomes available for code import
+3. Select distribution type (unique or universal)
+4. Save credit type
+5. For unique types: import codes via CSV
+6. For universal types: codes are auto-generated on creation
 
 **Required Fields:**
 
@@ -644,17 +646,28 @@ You### 5. Credit Management System
 |-------|------|-------------|---------|
 | Name | String | Internal identifier (lowercase, no spaces) | `cursor` |
 | Display Name | String | Shown to participants | `Cursor Pro Credits - 50 credits` |
+| Distribution Type | Enum | 'unique' (CSV import) or 'universal' (same code for all) | `unique` |
 | Email Instructions | Text | Concise text for email | `Login to cursor.com, go to Settings > Billing, paste code` |
-| Web Instructions | Rich Text | Detailed HTML/Markdown for dashboard | `<h3>How to Redeem</h3><ol><li>Go to...` |
+| Web Instructions | Text | Plain text for dashboard | `How to Redeem: Go to cursor.com...` |
 | Display Order | Integer | Sorting order in lists | `1` |
 | Icon URL | String (optional) | Logo/icon for UI | `https://cdn.../cursor.png` |
 | Is Active | Boolean | Enable/disable credit type | `true` |
+
+**Universal Distribution Fields (required if distributionType is 'universal'):**
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| Universal Code | String | The shared code value (auto-uppercased) | `CURSOR50` |
+| Universal Redeem URL | String (optional) | The shared redemption URL | `https://cursor.com/redeem` |
+| Universal Quantity | Integer | Number of code records to generate | `1000` |
 
 **Business Rules:**
 - Name must be unique
 - Display order determines sort position in participant dashboard
 - Inactive credit types won't assign codes during registration check-in
 - Instructions are shared by all codes of this type
+- All code values are normalized to uppercase
+- Universal codes create N identical code records that are individually assigned to participants
 
 **Example Credit Types:**
 1. Cursor Pro Credits - 50 credits
@@ -668,15 +681,19 @@ You### 5. Credit Management System
 
 **Purpose:** Bulk import redemption codes from sponsors
 
-**Prerequisite:** Credit type must be created first
+**Prerequisite:** Credit type must be created with `distributionType: 'unique'`
+
+**Note:** This applies only to unique distribution types. Universal distribution types have codes auto-generated on creation.
 
 **CSV Format:**
 ```csv
 code,redeem_url
 ABC123XYZ,https://cursor.com/redeem
-DEF456ABC,https://cursor.com/redeem
+DEF456ABC,
 GHI789DEF,https://cursor.com/redeem
 ````
+
+Note: `redeem_url` column is optional - empty values are allowed.
 
 **Admin Workflow:**
 
@@ -691,9 +708,10 @@ GHI789DEF,https://cursor.com/redeem
 
 **Validation Rules:**
 
-- CSV must have exactly 2 columns: `code`, `redeem_url`
+- CSV must have `code` column (required), `redeem_url` column (optional)
 - Code values must be unique within credit type
-- Redeem URL must be valid format
+- Code values are normalized to uppercase
+- Redeem URL must be valid format if provided
 - Max 10,000 codes per import
 
 **Import Result:**
@@ -2059,6 +2077,9 @@ export const CreditTypesTable = pgTable(
     displayOrder: integer('display_order').notNull().default(0),
     iconUrl: text('icon_url'), // Sponsor logo URL
     isActive: boolean('is_active').notNull().default(true),
+    distributionType: text('distribution_type', { enum: ['unique', 'universal'] }).notNull().default('unique'),
+    universalCode: text('universal_code'), // For universal distribution
+    universalRedeemUrl: text('universal_redeem_url'), // For universal distribution
     ...timestamps,
   },
   (table) => [
@@ -2073,16 +2094,19 @@ export type NewCreditType = typeof CreditTypesTable.$inferInsert;
 
 **Field Details:**
 
-| Field             | Type        | Nullable | Default | Description                                                          |
-| ----------------- | ----------- | -------- | ------- | -------------------------------------------------------------------- |
-| id                | text (cuid) | No       | auto    | Primary key                                                          |
-| name              | text        | No       | -       | Unique internal identifier (lowercase, no spaces)                    |
-| displayName       | text        | No       | -       | Human-readable name shown in UI and emails                           |
-| emailInstructions | text        | No       | -       | Brief redemption instructions for email                              |
-| webInstructions   | text        | No       | -       | Detailed HTML/Markdown instructions for dashboard                    |
-| displayOrder      | integer     | No       | 0       | Sort order in participant dashboard                                  |
-| iconUrl           | text        | Yes      | null    | URL to sponsor logo/icon                                             |
-| isActive          | boolean     | No       | true    | Whether codes of this type are assigned during registration check-in |
+| Field             | Type        | Nullable | Default   | Description                                                          |
+| ----------------- | ----------- | -------- | --------- | -------------------------------------------------------------------- |
+| id                | text (cuid) | No       | auto      | Primary key                                                          |
+| name              | text        | No       | -         | Unique internal identifier (lowercase, no spaces)                    |
+| displayName       | text        | No       | -         | Human-readable name shown in UI and emails                           |
+| emailInstructions | text        | No       | -         | Brief redemption instructions for email                              |
+| webInstructions   | text        | No       | -         | Detailed HTML/Markdown instructions for dashboard                    |
+| displayOrder      | integer     | No       | 0         | Sort order in participant dashboard                                  |
+| iconUrl           | text        | Yes      | null      | URL to sponsor logo/icon                                             |
+| isActive          | boolean     | No       | true      | Whether codes of this type are assigned during registration check-in |
+| distributionType  | enum        | No       | 'unique'  | 'unique' (CSV import) or 'universal' (same code for all)             |
+| universalCode     | text        | Yes      | null      | The shared code value for universal distribution                     |
+| universalRedeemUrl| text        | Yes      | null      | The shared redeem URL for universal distribution                     |
 
 **Example Data:**
 
@@ -2124,8 +2148,8 @@ export const CodesTable = pgTable(
     creditTypeId: text('credit_type_id')
       .notNull()
       .references(() => CreditTypesTable.id, { onDelete: 'restrict' }),
-    codeValue: text('code_value').notNull(), // The actual redemption code
-    redeemUrl: text('redeem_url').notNull(), // URL where code is redeemed
+    codeValue: text('code_value').notNull(), // The actual redemption code (uppercased)
+    redeemUrl: text('redeem_url'), // URL where code is redeemed (optional)
     assignedTo: text('assigned_to').references(() => UsersTable.id, { onDelete: 'set null' }),
     assignedAt: timestamp('assigned_at'),
     redeemedAt: timestamp('redeemed_at'), // Self-reported by participant
@@ -2137,8 +2161,6 @@ export const CodesTable = pgTable(
     index('codes_assignment_idx').on(table.creditTypeId, table.status),
     // For looking up participant's assigned codes
     index('codes_assigned_to_idx').on(table.assignedTo),
-    // Unique code per credit type (prevent duplicate imports)
-    index('codes_unique_per_type_idx').on(table.creditTypeId, table.codeValue),
   ]
 );
 
@@ -2148,16 +2170,16 @@ export type NewCode = typeof CodesTable.$inferInsert;
 
 **Field Details:**
 
-| Field        | Type        | Nullable | Default      | Description                                         |
-| ------------ | ----------- | -------- | ------------ | --------------------------------------------------- |
-| id           | text (cuid) | No       | auto         | Primary key                                         |
-| creditTypeId | text        | No       | -            | FK to credit_types                                  |
-| codeValue    | text        | No       | -            | The actual redemption code string                   |
-| redeemUrl    | text        | No       | -            | URL where participant redeems code                  |
-| assignedTo   | text        | Yes      | null         | FK to users (participant who received code)         |
-| assignedAt   | timestamp   | Yes      | null         | When code was assigned during registration check-in |
-| redeemedAt   | timestamp   | Yes      | null         | When participant marked as redeemed                 |
-| status       | enum        | No       | 'unassigned' | Lifecycle: unassigned → available → redeemed        |
+| Field        | Type        | Nullable | Default      | Description                                              |
+| ------------ | ----------- | -------- | ------------ | -------------------------------------------------------- |
+| id           | text (cuid) | No       | auto         | Primary key                                              |
+| creditTypeId | text        | No       | -            | FK to credit_types                                       |
+| codeValue    | text        | No       | -            | The actual redemption code string (normalized uppercase) |
+| redeemUrl    | text        | Yes      | null         | URL where participant redeems code (optional)            |
+| assignedTo   | text        | Yes      | null         | FK to users (participant who received code)              |
+| assignedAt   | timestamp   | Yes      | null         | When code was assigned during registration check-in      |
+| redeemedAt   | timestamp   | Yes      | null         | When participant marked as redeemed                      |
+| status       | enum        | No       | 'unassigned' | Lifecycle: unassigned → available → redeemed             |
 
 **Status Lifecycle:**
 

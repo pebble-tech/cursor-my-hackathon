@@ -1,0 +1,1 @@
+CREATE INDEX "checkin_records_checked_in_by_idx" ON "checkin_records" USING btree ("checked_in_by");

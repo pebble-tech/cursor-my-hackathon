@@ -20,18 +20,14 @@
 │                              │                 └──► Phase 4: Credits+Checkins ✅
 │                              │                           │                   │
 │                              │                           ▼                   │
-│                              │              Phase 5: Registration Check-in   │
+│                              │              Phase 5: Ops Check-in System     │
+│                              │              (incl. code assignment + email)  │
 │                              │                           │                   │
-│                              │         ┌─────────────────┴─────────────────┐ │
-│                              │         │                                   │ │
-│                              │         ▼                                   ▼ │
-│                              │  Phase 6: Check-in System    Phase 7: Email~  │
-│                              │         │                                   │ │
-│                              │         └─────────────────┬─────────────────┘ │
 │                              │                           ▼                   │
-│                              │              Phase 8: Admin Dashboard         │
+│                              │              Phase 7: Admin Dashboard         │
 │                              │                                               │
-│  ✅ = Complete    ~ = Partial                                                │
+│  ✅ = Complete                                                               │
+│  Note: Phase 6 merged into Phase 5, Phase 7 renumbered                       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -281,152 +277,129 @@ Route Structure:
 
 ---
 
-## Phase 5: Ops - Registration Check-in
+## Phase 5: Ops - Check-in System
 
 **Status:** Not Started  
 **Priority:** Critical  
-**Estimated Effort:** 1.5 days  
+**Estimated Effort:** 2 days  
 **Dependencies:** Phase 1, Phase 2, Phase 4
 
+> **Note:** This phase combines the original Phase 5 (Registration Check-in) and Phase 6 (Check-in System).
+> See detailed plan: `docs/workspace/tasks/005-phase5-ops-checkin/005-plan.md`
+
 ### Tasks
+
+#### Route & Layout
 
 - [ ] 5.1 Ops route layout with role guard
-  - [ ] `apps/web/src/routes/ops/` directory
+  - [ ] `apps/web/src/routes/ops.tsx` layout
   - [ ] Role check (ops or admin)
+  - [ ] Mobile-first responsive design
+
+#### QR Scanner Component
 
 - [ ] 5.2 QR scanner component
-  - [ ] Camera access request
   - [ ] html5-qrcode integration
-  - [ ] Viewfinder UI
-  - [ ] Torch toggle for low light
+  - [ ] Camera access request and error handling
+  - [ ] Viewfinder UI with torch toggle
 
-- [ ] 5.3 QR validation server function
-  - [ ] Decode base64url payload
-  - [ ] Verify HMAC signature
-  - [ ] Lookup participant
+#### Check-in Guest Mode
 
-- [ ] 5.4 Check-in processing
-  - [ ] Select "Day 1 Attendance" check-in type
-  - [ ] Validate status is 'registered'
-  - [ ] Create checkin_record for "Day 1 Attendance"
-  - [ ] Update participant status to 'checked_in'
-  - [ ] Set `checkedInAt` and `checkedInBy`
+- [ ] 5.3 Check-in type selector
+  - [ ] Fetch active check-in types from DB (ordered)
+  - [ ] Radio button list for selection
+  - [ ] Default to first item
+
+- [ ] 5.4 Check-in processing server function
+  - [ ] QR validation (decode + verify HMAC)
+  - [ ] Participant lookup
+  - [ ] Duplicate check (unique constraint)
+  - [ ] Code assignment on first attendance check-in
+  - [ ] Update user status, checkedInAt, checkedInBy
+  - [ ] Create checkin_record
 
 - [ ] 5.5 Code assignment algorithm
-  - [ ] Transaction with row-level locking
+  - [ ] Transaction with row-level locking (FOR UPDATE SKIP LOCKED)
   - [ ] Assign one code per active credit type
+  - [ ] Skip for VIPs
   - [ ] Handle pool exhaustion gracefully
-  - [ ] Return assigned codes list
 
-- [ ] 5.6 Success/error display
+- [ ] 5.6 Success/error popup
   - [ ] Large success message with participant name
-  - [ ] Code count assigned
+  - [ ] Code count assigned (or VIP badge)
   - [ ] Error message if already checked in
-  - [ ] Auto-dismiss after 3 seconds
+  - [ ] Auto-dismiss after 5 seconds + manual close
 
 - [ ] 5.7 Check-in counter
-  - [ ] Real-time count of checked-in today
-  - [ ] Refresh on each scan
-
-- [ ] 5.8 Recent scans history
-  - [ ] Last 10 scans
-  - [ ] Name, time, status (success/error)
-
-- [ ] 5.9 VIP badge display
-  - [ ] Show "VIP" badge when scanning VIP
-  - [ ] Different success message (no codes)
-
-### Deliverable
-
-- Ops can scan QR codes
-- Participants checked in with codes assigned
-- Real-time feedback and counters
-
----
-
-## Phase 6: Ops - Check-in System
-
-**Status:** Not Started  
-**Priority:** High  
-**Estimated Effort:** 0.5 day  
-**Dependencies:** Phase 5
-
-### Tasks
-
-- [ ] 6.1 Check-in type selector
-  - [ ] Fetch active check-in types from DB (ordered)
-  - [ ] Display as selectable list (Day 1 Attendance, Day 1 Lunch, etc.)
-  - [ ] Persist selection
-
-- [ ] 6.2 Check-in Guest flow
-  - [ ] Select check-in type first
-  - [ ] Scan participant QR
-  - [ ] Show participant info + status for selected type only
-  - [ ] "Check In" button if not already checked in
-
-- [ ] 6.3 Check-in server function
-  - [ ] Validate participant exists
-  - [ ] Check for duplicate (unique constraint)
-  - [ ] Insert checkin_record
-  - [ ] Handle duplicate gracefully
-
-- [ ] 6.4 Check Guest Status flow
-  - [ ] Separate screen/mode
-  - [ ] Scan participant QR
-  - [ ] Query all check-in types with status for participant
-  - [ ] Display list with checkmarks for completed
-
-- [ ] 6.5 Check-in counter
   - [ ] Count per selected check-in type
   - [ ] Refresh on each scan
 
-- [ ] 6.6 Already checked in error display
-  - [ ] Show timestamp of original check-in
-  - [ ] Clear error message
+- [ ] 5.8 Recent scans history
+  - [ ] Last 10 scans by current ops user
+  - [ ] Name, time, status (success/duplicate)
+
+#### Guest Status Mode
+
+- [ ] 5.9 Guest Status mode
+  - [ ] Mode toggle (Check-in Guest / Guest Status)
+  - [ ] Scan participant QR
+  - [ ] Query all check-in types with status
+  - [ ] Display list with checkmarks for completed
+
+#### Email Integration
+
+- [ ] 5.10 Check-in confirmation email
+  - [ ] Email template with credits list
+  - [ ] Embedded QR code image
+  - [ ] Send on first attendance check-in (skip VIPs)
 
 ### Deliverable
 
-- Ops can select check-in type and process check-ins
+- Ops can scan QR codes and select check-in type
+- Participants checked in with codes assigned on first attendance
+- VIPs checked in with badge display (no codes)
 - Check Guest Status shows all check-in statuses
-- Duplicates rejected with clear message
+- Confirmation email sent with credits
+- Real-time counters and recent scans history
 
 ---
 
-## Phase 7: Email Integration
+## Phase 6: Email Integration (Completed)
 
-**Status:** Partially Complete  
+**Status:** ✅ Complete  
 **Priority:** High  
 **Estimated Effort:** 1 day  
 **Dependencies:** Phase 1
 
+> **Note:** Check-in confirmation email is now part of Phase 5.
+
 ### Tasks
 
-- [x] 7.1 Resend client setup
+- [x] 6.1 Resend client setup
   - [x] `packages/core/src/email/client.ts`
   - [x] Configure API key
 
-- [x] 7.2 Magic link email template
+- [x] 6.2 Magic link email template
   - [x] HTML template (mobile-responsive)
   - [x] Subject: "Sign in to Cursor Hackathon"
   - [x] Link button with 1-hour expiry note
 
-- [x] 7.3 Welcome email template
+- [x] 6.3 Welcome email template
   - [x] Subject: "Welcome to Cursor Hackathon!"
   - [x] Platform URL
   - [x] Event date/time info
 
-- [ ] 7.4 Check-in confirmation email
-  - [ ] Subject: "You're Checked In!"
-  - [ ] Credits list with codes and instructions
-  - [ ] Embedded QR code image
-  - [ ] Food schedule
+- [x] 6.4 Check-in confirmation email (moved to Phase 5)
+  - [x] Subject: "You're Checked In!"
+  - [x] Credits list with codes and instructions
+  - [x] Embedded QR code image
 
-- [x] 7.5 VIP welcome email (moved to Phase 2)
+- [x] 6.5 VIP welcome email (moved to Phase 2)
   - [x] Subject: "Welcome to Cursor Hackathon - Your VIP Pass"
   - [x] QR code image embedded
   - [x] Food schedule
 
-- [x] 7.6 QR code to PNG conversion
+- [x] 6.6 QR code to PNG conversion
   - [x] Generate data URL from QR value (`qr-image.ts`)
   - [x] Embed as inline image in email
 
@@ -435,52 +408,52 @@ Route Structure:
 - ✅ Resend client configured
 - ✅ Magic link, welcome, and VIP welcome emails working
 - ✅ QR codes embedded in VIP emails
-- [ ] Check-in confirmation email (pending Phase 5/6)
+- ✅ Check-in confirmation email (implemented in Phase 5)
 
 ---
 
-## Phase 8: Admin Dashboard & Polish
+## Phase 7: Admin Dashboard & Polish
 
 **Status:** Not Started  
 **Priority:** Medium  
 **Estimated Effort:** 1 day  
-**Dependencies:** Phase 5, Phase 6, Phase 7
+**Dependencies:** Phase 5
 
 ### Tasks
 
-- [ ] 8.1 Overview stats dashboard
+- [ ] 7.1 Overview stats dashboard
   - [ ] Total registered / checked in
   - [ ] Check-ins per type
   - [ ] Codes assigned per type
 
-- [ ] 8.2 Participant search and detail view
+- [ ] 7.2 Participant search and detail view
   - [ ] Search by name or email
   - [ ] Detail modal with all info
   - [ ] Assigned codes list
 
-- [ ] 8.3 Manual check-in button
+- [ ] 7.3 Manual check-in button
   - [ ] Backup if QR scan fails
   - [ ] Triggers same check-in flow
 
-- [ ] 8.4 VIP check-in workflow
+- [ ] 7.4 VIP check-in workflow
   - [ ] Check-in button in VIP list
   - [ ] Sends VIP email with QR
 
-- [ ] 8.5 Send/resend welcome email action
+- [ ] 7.5 Send/resend welcome email action
   - [ ] Button per participant
   - [ ] Bulk send option
 
-- [ ] 8.6 Error handling and edge cases
+- [ ] 7.6 Error handling and edge cases
   - [ ] Network errors
   - [ ] Invalid data handling
   - [ ] Graceful degradation
 
-- [ ] 8.7 Loading states and UX polish
+- [ ] 7.7 Loading states and UX polish
   - [ ] Skeleton loaders
   - [ ] Button loading states
   - [ ] Toast notifications
 
-- [ ] 8.8 Mobile responsiveness check
+- [ ] 7.8 Mobile responsiveness check
   - [ ] All dashboards work on mobile
   - [ ] Scanner optimized for tablet
 
@@ -504,17 +477,15 @@ Route Structure:
 │  └── Phase 2: Admin Import ✅                                                │
 │                                                                              │
 │  Dec 2-3 (Tue-Wed)                                                           │
-│  ├── Phase 3: Participant Dashboard                                          │
-│  └── Phase 4: Credits Management                                             │
+│  ├── Phase 3: Participant Dashboard ✅                                       │
+│  └── Phase 4: Credits & Check-in Types ✅                                    │
 │                                                                              │
 │  Dec 3-4 (Wed-Thu)                                                           │
-│  ├── Phase 7: Email Integration (partial ✅, check-in email pending)         │
-│  └── Phase 5: Registration Check-in (start)                                  │
+│  └── Phase 5: Ops Check-in System (incl. confirmation email)                 │
 │                                                                              │
 │  Dec 4-5 (Thu-Fri)                                                           │
-│  ├── Phase 5: Registration Check-in (complete)                               │
-│  ├── Phase 6: Check-in System                                                │
-│  └── Phase 8: Admin Dashboard & Polish                                       │
+│  ├── Phase 5: Complete                                                       │
+│  └── Phase 7: Admin Dashboard & Polish                                       │
 │                                                                              │
 │  Dec 5 (Fri)                                                                 │
 │  └── Final testing with 100+ test users                                      │
@@ -534,11 +505,9 @@ Route Structure:
 | 1           | Run migrations, test magic link login flow                  | ✅     |
 | 2           | Import 10 test users from CSV, verify QR generated          | ✅     |
 | 3           | Login as participant, view QR, test copy button             | ✅     |
-| 4           | Create check-in types, create credit type, import 10 codes  |        |
-| 5           | Full check-in: scan → status update → codes assigned        |        |
-| 6           | Check-in type selection, check-in scan, duplicate rejection |        |
-| 7           | Receive all email types in inbox                            |        |
-| 8           | End-to-end with 100+ test users, stress test scanner        |        |
+| 4           | Create check-in types, create credit type, import 10 codes  | ✅     |
+| 5           | Full check-in flow: type selection, scan, codes, email      |        |
+| 7           | End-to-end with 100+ test users, stress test scanner        |        |
 
 ---
 

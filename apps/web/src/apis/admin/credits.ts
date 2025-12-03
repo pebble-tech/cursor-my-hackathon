@@ -208,7 +208,9 @@ export const deleteCreditType = createServerFn({ method: 'POST' })
       .from(CodesTable)
       .where(and(eq(CodesTable.creditTypeId, data.id), sql`${CodesTable.status} != ${CodeStatusEnum.unassigned}`));
 
-    if (assignedCodesCount[0].count > 0) {
+    const countValue = assignedCodesCount[0]?.count ?? 0;
+
+    if (countValue > 0) {
       throw new Error('Cannot delete credit type with assigned codes');
     }
 
