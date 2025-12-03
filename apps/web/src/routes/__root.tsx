@@ -19,7 +19,7 @@ export const Route = createRootRouteWithContext<{
         name: 'viewport',
         content: 'width=device-width, initial-scale=1',
       },
-      { title: 'Base Template - TanStack Start + Better Auth' },
+      { title: 'MY Hackathon' },
       {
         name: 'description',
         content: 'A modern full-stack template with TanStack Start, Better Auth, Drizzle ORM, and Tailwind CSS',

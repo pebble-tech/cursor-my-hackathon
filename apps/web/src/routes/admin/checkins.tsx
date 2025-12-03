@@ -31,6 +31,9 @@ import {
 } from '~/apis/admin/checkins';
 
 export const Route = createFileRoute('/admin/checkins')({
+  head: () => ({
+    meta: [{ title: 'Check-in Types - Admin Portal - MY Hackathon' }],
+  }),
   component: CheckinTypesPage,
 });
 

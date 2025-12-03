@@ -8,6 +8,9 @@ import { getServerSession } from '~/apis/auth';
 import { authClient } from '~/utils/auth-client';
 
 export const Route = createFileRoute('/ops')({
+  head: () => ({
+    meta: [{ title: 'Ops Dashboard - MY Hackathon' }],
+  }),
   beforeLoad: async () => {
     const session = await getServerSession();
 

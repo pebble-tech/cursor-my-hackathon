@@ -34,6 +34,9 @@ import {
 import { generateSkippedCodesCSV, parseCodesCSV, type ParsedCodeRow } from '~/utils/csv-parser';
 
 export const Route = createFileRoute('/admin/credits')({
+  head: () => ({
+    meta: [{ title: 'Credits - Admin Portal - MY Hackathon' }],
+  }),
   component: CreditsPage,
 });
 

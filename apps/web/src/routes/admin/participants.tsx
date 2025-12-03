@@ -30,6 +30,9 @@ import {
 import { generateSkippedRowsCSV, parseParticipantsCSV, type ParsedRow } from '~/utils/csv-parser';
 
 export const Route = createFileRoute('/admin/participants')({
+  head: () => ({
+    meta: [{ title: 'Participants - Admin Portal - MY Hackathon' }],
+  }),
   component: ParticipantsPage,
 });
 

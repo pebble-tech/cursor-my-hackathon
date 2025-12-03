@@ -9,6 +9,9 @@ import { getServerSession } from '~/apis/auth';
 import { authClient } from '~/utils/auth-client';
 
 export const Route = createFileRoute('/login')({
+  head: () => ({
+    meta: [{ title: 'Login - MY Hackathon' }],
+  }),
   beforeLoad: async () => {
     const session = await getServerSession();
     if (session) {

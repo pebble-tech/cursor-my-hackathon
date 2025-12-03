@@ -13,6 +13,9 @@ import { getParticipantDashboard, markCreditRedeemed } from '~/apis/participant/
 import { authClient } from '~/utils/auth-client';
 
 export const Route = createFileRoute('/dashboard')({
+  head: () => ({
+    meta: [{ title: 'Dashboard - MY Hackathon' }],
+  }),
   beforeLoad: async () => {
     const session = await getServerSession();
     if (!session) {

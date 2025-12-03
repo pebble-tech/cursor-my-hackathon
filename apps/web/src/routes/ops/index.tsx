@@ -19,6 +19,9 @@ import {
 import { listCheckinTypes } from '~/apis/ops/checkin-types';
 
 export const Route = createFileRoute('/ops/')({
+  head: () => ({
+    meta: [{ title: 'Check-in - Ops Dashboard - MY Hackathon' }],
+  }),
   component: OpsDashboardPage,
 });
 

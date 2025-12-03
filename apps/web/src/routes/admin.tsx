@@ -8,6 +8,9 @@ import { getServerSession } from '~/apis/auth';
 import { authClient } from '~/utils/auth-client';
 
 export const Route = createFileRoute('/admin')({
+  head: () => ({
+    meta: [{ title: 'Admin Portal - MY Hackathon' }],
+  }),
   beforeLoad: async () => {
     const session = await getServerSession();
 

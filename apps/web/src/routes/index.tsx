@@ -7,6 +7,9 @@ import { Button } from '@base/ui/components/button';
 import { getServerSession, type User } from '~/apis/auth';
 
 export const Route = createFileRoute('/')({
+  head: () => ({
+    meta: [{ title: 'MY Hackathon - Cursor x Anthropic' }],
+  }),
   beforeLoad: async () => {
     const session = await getServerSession();
     return { session };
