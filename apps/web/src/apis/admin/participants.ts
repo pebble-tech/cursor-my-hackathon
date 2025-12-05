@@ -17,7 +17,7 @@ import {
   type ParticipantType,
   type UserRole,
 } from '@base/core/config/constant';
-import { and, asc, count, db, desc, eq, inArray, like, or, type SQL } from '@base/core/drizzle.server';
+import { and, asc, count, db, desc, eq, ilike, inArray, or, type SQL } from '@base/core/drizzle.server';
 
 import { requireAdmin } from '~/apis/auth';
 
@@ -46,7 +46,7 @@ export const listParticipants = createServerFn({ method: 'GET' })
 
     if (search) {
       const searchPattern = `%${search}%`;
-      const searchCondition = or(like(UsersTable.name, searchPattern), like(UsersTable.email, searchPattern));
+      const searchCondition = or(ilike(UsersTable.name, searchPattern), ilike(UsersTable.email, searchPattern));
       if (searchCondition) conditions.push(searchCondition);
     }
 

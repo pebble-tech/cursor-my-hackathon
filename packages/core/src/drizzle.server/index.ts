@@ -30,6 +30,7 @@ export {
   inArray,
   count,
   like,
+  ilike,
   notLike,
   asc,
   desc,

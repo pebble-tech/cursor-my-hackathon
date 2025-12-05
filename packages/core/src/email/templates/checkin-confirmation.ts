@@ -88,16 +88,10 @@ export async function sendCheckinConfirmationEmail({
               ${creditsSection}
 
               <h2 style="margin: 28px 0 12px; font-size: 16px; font-weight: 600; color: #18181b;">Your QR Code</h2>
-              <p style="margin: 0 0 16px; font-size: 15px; line-height: 24px; color: #3f3f46;">Show this QR code at food stations to receive your meals. Your QR code is permanent and never expires.</p>
+              <p style="margin: 0 0 16px; font-size: 15px; line-height: 24px; color: #3f3f46;">Show this QR code for check-in at the event. Your QR code is permanent and never expires.</p>
               
               <div style="text-align: center; padding: 20px; background-color: #fafafa; border-radius: 8px; margin-bottom: 24px;">
                 <img src="cid:${QR_CODE_CONTENT_ID}" alt="Your QR Code" width="200" height="200" style="display: block; margin: 0 auto; border-radius: 4px;" />
-              </div>
-              
-              <div style="margin: 24px 0; padding: 16px; background-color: #fefce8; border-radius: 8px; border: 1px solid #fef08a;">
-                <p style="margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #854d0e;">Food Schedule</p>
-                <p style="margin: 0 0 4px; font-size: 13px; line-height: 20px; color: #713f12;"><strong>Day 1 (Dec 6):</strong> Lunch, Dinner, Midnight Snack</p>
-                <p style="margin: 0; font-size: 13px; line-height: 20px; color: #713f12;"><strong>Day 2 (Dec 7):</strong> Breakfast, Lunch</p>
               </div>
 
               <hr style="margin: 32px 0; border: none; border-top: 1px solid #e4e4e7;">
@@ -136,13 +130,9 @@ You've been assigned ${assignedCodes.length} credit${assignedCodes.length !== 1 
 ${creditsText}
 
 YOUR QR CODE
-Show your QR code at food stations to receive your meals. Your QR code is permanent and never expires.
+Show your QR code for check-in at the event. Your QR code is permanent and never expires.
 
 (QR code is embedded in the HTML version of this email. Please view in an email client that supports HTML to see your QR code.)
-
-FOOD SCHEDULE
-Day 1 (Dec 6): Lunch, Dinner, Midnight Snack
-Day 2 (Dec 7): Breakfast, Lunch
 
 You can view all your credits and QR code anytime in your dashboard: ${env.APP_BASE_URL}/dashboard
 

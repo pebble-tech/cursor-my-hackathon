@@ -10,6 +10,7 @@ import {
   History,
   Loader2,
   Mail,
+  MailPlus,
   Plus,
   Search,
   Trash2,
@@ -39,7 +40,7 @@ import { FileUpload } from '@base/ui/components/file-upload';
 import { Input } from '@base/ui/components/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@base/ui/components/select';
 
-import { getWelcomeEmailStats, sendWelcomeEmails } from '~/apis/admin/emails';
+import { getWelcomeEmailStats, sendWelcomeEmailToUser, sendWelcomeEmails } from '~/apis/admin/emails';
 import {
   createUser,
   deleteUser,
@@ -144,6 +145,8 @@ const columns: ColumnDef<Participant>[] = [
         onEdit?: (participant: Participant) => void;
         onDelete?: (participant: Participant) => void;
         onViewLog?: (participant: Participant) => void;
+        onSendEmail?: (participant: Participant) => void;
+        sendingEmailUserId?: string | null;
       };
       return (
         <div className="flex items-center gap-2">
@@ -156,6 +159,22 @@ const columns: ColumnDef<Participant>[] = [
           >
             <History className="h-4 w-4" />
           </Button>
+          {participant.role === 'participant' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => meta.onSendEmail?.(participant)}
+              className="h-8 w-8 p-0"
+              title="Send/Retry Email"
+              disabled={meta.sendingEmailUserId === participant.id}
+            >
+              {meta.sendingEmailUserId === participant.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MailPlus className="h-4 w-4" />
+              )}
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={() => meta.onEdit?.(participant)} className="h-8 w-8 p-0">
             <Edit className="h-4 w-4" />
           </Button>
@@ -186,10 +205,13 @@ function ParticipantsPage() {
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [sendEmailDialogOpen, setSendEmailDialogOpen] = useState(false);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Participant | null>(null);
   const [deletingUser, setDeletingUser] = useState<Participant | null>(null);
   const [viewingLogUser, setViewingLogUser] = useState<Participant | null>(null);
+  const [sendingEmailUser, setSendingEmailUser] = useState<Participant | null>(null);
+  const [sendingEmailUserId, setSendingEmailUserId] = useState<string | null>(null);
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -277,6 +299,17 @@ function ParticipantsPage() {
     onSuccess: (result) => {
       setImportResult(result);
       queryClient.invalidateQueries({ queryKey: ['participants'] });
+    },
+  });
+
+  const sendEmailToUserMutation = useMutation({
+    mutationFn: (userId: string) => sendWelcomeEmailToUser({ data: { userId } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['participants'] });
+      queryClient.invalidateQueries({ queryKey: ['welcome-email-stats'] });
+      setSendingEmailUserId(null);
+      setSendEmailDialogOpen(false);
+      setSendingEmailUser(null);
     },
   });
 
@@ -370,6 +403,16 @@ function ParticipantsPage() {
     setLogDialogOpen(true);
   };
 
+  const handleSendEmail = (participant: Participant) => {
+    setSendingEmailUser(participant);
+    setSendEmailDialogOpen(true);
+  };
+
+  const handleConfirmSendEmail = () => {
+    setSendingEmailUserId(sendingEmailUser!.id);
+    sendEmailToUserMutation.mutate(sendingEmailUser!.id);
+  };
+
   const handleUpdateUser = () => {
     if (!editingUser || !newUserName || !newUserEmail || !originalRole || !originalParticipantType) return;
 
@@ -442,7 +485,8 @@ function ParticipantsPage() {
               <DialogHeader>
                 <DialogTitle>Send Welcome Emails</DialogTitle>
                 <DialogDescription>
-                  Send welcome emails to all participants who haven't received one yet.
+                  Send welcome emails to participants who haven't received one yet. Emails are sent in batches of 100
+                  with rate limiting.
                 </DialogDescription>
               </DialogHeader>
 
@@ -486,6 +530,11 @@ function ParticipantsPage() {
                       <span className="text-sm text-gray-600">Already sent:</span>
                       <span className="text-gray-500">{emailStats?.sentCount ?? '-'}</span>
                     </div>
+                    {emailStats && emailStats.pendingCount > 0 && (
+                      <div className="mt-3 rounded-md bg-blue-50 p-2 text-xs text-blue-700">
+                        Will send up to 100 emails per batch. Click again to send the next batch if more remain.
+                      </div>
+                    )}
                   </div>
 
                   {emailStats?.pendingCount === 0 && (
@@ -509,7 +558,7 @@ function ParticipantsPage() {
                           Sending...
                         </>
                       ) : (
-                        `Send ${emailStats?.pendingCount ?? 0} Emails`
+                        `Send ${Math.min(emailStats?.pendingCount ?? 0, 100)} Emails`
                       )}
                     </Button>
                   </DialogFooter>
@@ -792,6 +841,8 @@ function ParticipantsPage() {
             onEdit: handleEdit,
             onDelete: handleDelete,
             onViewLog: handleViewLog,
+            onSendEmail: handleSendEmail,
+            sendingEmailUserId,
           }}
         />
       </div>
@@ -904,6 +955,50 @@ function ParticipantsPage() {
                 </>
               ) : (
                 'Delete User'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Email Dialog */}
+      <Dialog
+        open={sendEmailDialogOpen}
+        onOpenChange={(open) => {
+          setSendEmailDialogOpen(open);
+          if (!open) {
+            setSendingEmailUser(null);
+            setSendingEmailUserId(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Welcome Email</DialogTitle>
+            <DialogDescription>
+              Send welcome email to {sendingEmailUser?.name} ({sendingEmailUser?.email})?
+            </DialogDescription>
+          </DialogHeader>
+
+          {sendEmailToUserMutation.isError && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4" />
+              {(sendEmailToUserMutation.error as Error).message}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendEmailDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmSendEmail} disabled={sendEmailToUserMutation.isPending}>
+              {sendEmailToUserMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send Email'
               )}
             </Button>
           </DialogFooter>
