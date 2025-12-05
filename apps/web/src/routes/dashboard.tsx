@@ -282,6 +282,31 @@ function CreditCard({ credit, onMarkRedeemed }: CreditCardProps) {
 
   const IconComponent = credit.creditType?.iconUrl ? null : CategoryIcon || Ticket;
 
+  const categoryColors: Record<string, { bg: string; icon: string; bgMuted: string; iconMuted: string }> = {
+    food_voucher: {
+      bg: 'bg-orange-100',
+      icon: 'text-orange-600',
+      bgMuted: 'bg-orange-50',
+      iconMuted: 'text-orange-300',
+    },
+    software_credit: {
+      bg: 'bg-violet-100',
+      icon: 'text-violet-600',
+      bgMuted: 'bg-violet-50',
+      iconMuted: 'text-violet-300',
+    },
+    swag: { bg: 'bg-pink-100', icon: 'text-pink-600', bgMuted: 'bg-pink-50', iconMuted: 'text-pink-300' },
+  };
+
+  const colors = credit.creditType?.category
+    ? categoryColors[credit.creditType.category] || {
+        bg: 'bg-gray-100',
+        icon: 'text-gray-600',
+        bgMuted: 'bg-gray-50',
+        iconMuted: 'text-gray-300',
+      }
+    : { bg: 'bg-gray-100', icon: 'text-gray-600', bgMuted: 'bg-gray-50', iconMuted: 'text-gray-300' };
+
   return (
     <div
       className={`rounded-xl border-2 bg-white p-4 transition-all ${
@@ -289,27 +314,23 @@ function CreditCard({ credit, onMarkRedeemed }: CreditCardProps) {
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-              isRedeemed ? 'bg-gray-100' : 'bg-gray-900'
-            }`}
+            className={`flex h-7 w-7 items-center justify-center rounded-md ${isRedeemed ? colors.bgMuted : colors.bg}`}
           >
             {credit.creditType?.iconUrl ? (
               <img
                 src={credit.creditType.iconUrl}
                 alt=""
-                className={`h-6 w-6 object-contain ${isRedeemed ? 'opacity-50' : 'invert'}`}
+                className={`h-4 w-4 object-contain ${isRedeemed ? 'opacity-40' : ''}`}
               />
             ) : IconComponent ? (
-              <IconComponent className={`h-5 w-5 ${isRedeemed ? 'text-gray-400' : 'text-white'}`} />
+              <IconComponent className={`h-4 w-4 ${isRedeemed ? colors.iconMuted : colors.icon}`} />
             ) : null}
           </div>
-          <div>
-            <h3 className={`font-semibold ${isRedeemed ? 'text-gray-500' : 'text-gray-900'}`}>
-              {credit.creditType?.displayName}
-            </h3>
-          </div>
+          <h3 className={`font-medium ${isRedeemed ? 'text-gray-500' : 'text-gray-900'}`}>
+            {credit.creditType?.displayName}
+          </h3>
         </div>
         <Badge
           variant={isRedeemed ? 'secondary' : 'outline'}
@@ -363,12 +384,12 @@ function CreditCard({ credit, onMarkRedeemed }: CreditCardProps) {
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-900">
+                  <DialogTitle className="flex items-center gap-2.5">
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg}`}>
                       {credit.creditType?.iconUrl ? (
-                        <img src={credit.creditType.iconUrl} alt="" className="h-5 w-5 object-contain invert" />
+                        <img src={credit.creditType.iconUrl} alt="" className="h-4 w-4 object-contain" />
                       ) : IconComponent ? (
-                        <IconComponent className="h-4 w-4 text-white" />
+                        <IconComponent className={`h-4 w-4 ${colors.icon}`} />
                       ) : null}
                     </div>
                     {credit.creditType?.displayName}
