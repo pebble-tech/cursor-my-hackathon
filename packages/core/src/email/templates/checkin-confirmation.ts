@@ -134,9 +134,7 @@ Show your QR code for check-in at the event. Your QR code is permanent and never
 
 (QR code is embedded in the HTML version of this email. Please view in an email client that supports HTML to see your QR code.)
 
-You can view all your credits and QR code anytime in your dashboard: ${env.APP_BASE_URL}/dashboard
-
-If you have any questions, reply to this email.`;
+You can view all your credits and QR code anytime in your dashboard: ${env.APP_BASE_URL}/dashboard`;
 
   return sendEmail({
     to,

@@ -48,7 +48,6 @@ export async function sendWelcomeEmail({ to, name }: SendWelcomeEmailParams) {
               </table>
               
               <hr style="margin: 32px 0; border: none; border-top: 1px solid #e4e4e7;">
-              <p style="margin: 0; font-size: 13px; line-height: 20px; color: #71717a;">If you have any questions, reply to this email. See you at the hackathon!</p>
             </td>
           </tr>
         </table>
