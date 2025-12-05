@@ -4,7 +4,12 @@ import { createFileRoute } from '@tanstack/react-router';
 import { type ColumnDef } from '@tanstack/react-table';
 import { AlertCircle, CheckCircle2, Download, Edit2, Loader2, Plus, Power, Trash2, Upload } from 'lucide-react';
 
-import { CodeDistributionTypeEnum, type CodeDistributionType } from '@base/core/config/constant';
+import {
+  CodeDistributionTypeEnum,
+  CreditCategories,
+  type CodeDistributionType,
+  type CreditCategory,
+} from '@base/core/config/constant';
 import { Button } from '@base/ui/components/button';
 import { DataTable } from '@base/ui/components/data-table';
 import {
@@ -18,6 +23,7 @@ import {
 } from '@base/ui/components/dialog';
 import { FileUpload } from '@base/ui/components/file-upload';
 import { Input } from '@base/ui/components/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@base/ui/components/select';
 import { Textarea } from '@base/ui/components/textarea';
 
 import {
@@ -31,6 +37,7 @@ import {
   type ImportCodesInput,
   type UpdateCreditTypeInput,
 } from '~/apis/admin/credits';
+import { categoryIcons } from '~/utils/credit-category-icons';
 import { generateSkippedCodesCSV, parseCodesCSV, type ParsedCodeRow } from '~/utils/csv-parser';
 
 export const Route = createFileRoute('/admin/credits')({
@@ -55,6 +62,7 @@ type CreditType = {
   displayOrder: number;
   iconUrl: string | null;
   isActive: boolean;
+  category: CreditCategory;
   distributionType: CodeDistributionType;
   universalCode: string | null;
   universalRedeemUrl: string | null;
@@ -104,7 +112,7 @@ function CreditsPage() {
     skipped: Array<{ codeValue: string; reason: string }>;
   } | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreditTypeFormData>({
     name: '',
     displayName: '',
     emailInstructions: '',
@@ -112,7 +120,8 @@ function CreditsPage() {
     displayOrder: 0,
     iconUrl: '',
     isActive: true,
-    distributionType: 'unique' as CodeDistributionType,
+    category: 'software_credit',
+    distributionType: 'unique',
     universalCode: '',
     universalRedeemUrl: '',
     universalQuantity: 100,
@@ -173,6 +182,7 @@ function CreditsPage() {
       displayOrder: 0,
       iconUrl: '',
       isActive: true,
+      category: 'software_credit',
       distributionType: 'unique',
       universalCode: '',
       universalRedeemUrl: '',
@@ -189,6 +199,7 @@ function CreditsPage() {
       displayOrder: formData.displayOrder,
       iconUrl: formData.iconUrl || undefined,
       isActive: formData.isActive,
+      category: formData.category,
       distributionType: formData.distributionType,
       universalCode: formData.distributionType === 'universal' ? formData.universalCode : undefined,
       universalRedeemUrl:
@@ -207,6 +218,7 @@ function CreditsPage() {
       displayOrder: formData.displayOrder,
       iconUrl: formData.iconUrl || undefined,
       isActive: formData.isActive,
+      category: formData.category,
     });
   };
 
@@ -220,6 +232,7 @@ function CreditsPage() {
       displayOrder: creditType.displayOrder,
       iconUrl: creditType.iconUrl || '',
       isActive: creditType.isActive,
+      category: creditType.category,
       distributionType: creditType.distributionType,
       universalCode: creditType.universalCode || '',
       universalRedeemUrl: creditType.universalRedeemUrl || '',
@@ -288,6 +301,26 @@ function CreditsPage() {
   };
 
   const columns: ColumnDef<CreditType>[] = [
+    {
+      accessorKey: 'category',
+      header: 'Category',
+      cell: ({ row }) => {
+        const category = row.getValue('category') as CreditCategory;
+        const CategoryIcon = category in categoryIcons ? categoryIcons[category] : null;
+        const categoryMap: Record<CreditCategory, string> = {
+          food_voucher: CreditCategories.FOOD_VOUCHER.label,
+          software_credit: CreditCategories.SOFTWARE_CREDIT.label,
+          swag: CreditCategories.SWAG.label,
+        };
+        const categoryLabel = categoryMap[category] || category;
+        return (
+          <div className="flex items-center gap-2">
+            {CategoryIcon && <CategoryIcon className="h-4 w-4 text-gray-600" />}
+            <span className="text-sm text-gray-600">{categoryLabel}</span>
+          </div>
+        );
+      },
+    },
     {
       accessorKey: 'displayName',
       header: 'Display Name',
@@ -637,35 +670,24 @@ function CreditsPage() {
   );
 }
 
+type CreditTypeFormData = {
+  name: string;
+  displayName: string;
+  emailInstructions: string;
+  webInstructions: string;
+  displayOrder: number;
+  iconUrl: string;
+  isActive: boolean;
+  category: CreditCategory;
+  distributionType: CodeDistributionType;
+  universalCode: string;
+  universalRedeemUrl: string;
+  universalQuantity: number;
+};
+
 type CreditTypeFormProps = {
-  formData: {
-    name: string;
-    displayName: string;
-    emailInstructions: string;
-    webInstructions: string;
-    displayOrder: number;
-    iconUrl: string;
-    isActive: boolean;
-    distributionType: CodeDistributionType;
-    universalCode: string;
-    universalRedeemUrl: string;
-    universalQuantity: number;
-  };
-  setFormData: React.Dispatch<
-    React.SetStateAction<{
-      name: string;
-      displayName: string;
-      emailInstructions: string;
-      webInstructions: string;
-      displayOrder: number;
-      iconUrl: string;
-      isActive: boolean;
-      distributionType: CodeDistributionType;
-      universalCode: string;
-      universalRedeemUrl: string;
-      universalQuantity: number;
-    }>
-  >;
+  formData: CreditTypeFormData;
+  setFormData: React.Dispatch<React.SetStateAction<CreditTypeFormData>>;
   error: Error | null;
   isEdit: boolean;
 };
@@ -700,6 +722,24 @@ function CreditTypeForm({ formData, setFormData, error, isEdit }: CreditTypeForm
           value={formData.displayName}
           onChange={(e) => setFormData((prev) => ({ ...prev, displayName: e.target.value }))}
         />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Category *</label>
+        <Select
+          value={formData.category}
+          onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value as CreditCategory }))}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="food_voucher">{CreditCategories.FOOD_VOUCHER.label}</SelectItem>
+            <SelectItem value="software_credit">{CreditCategories.SOFTWARE_CREDIT.label}</SelectItem>
+            <SelectItem value="swag">{CreditCategories.SWAG.label}</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-gray-500">Category for grouping and icon display</p>
       </div>
 
       {!isEdit && (

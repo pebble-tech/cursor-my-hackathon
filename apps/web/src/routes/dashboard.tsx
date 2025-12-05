@@ -11,6 +11,7 @@ import { QRCodeDisplay } from '~/components/qr-code-display';
 import { getServerSession } from '~/apis/auth';
 import { getParticipantDashboard, markCreditRedeemed } from '~/apis/participant/dashboard';
 import { authClient } from '~/utils/auth-client';
+import { categoryIcons } from '~/utils/credit-category-icons';
 
 export const Route = createFileRoute('/dashboard')({
   head: () => ({
@@ -160,6 +161,7 @@ type Credit = {
     displayName: string;
     webInstructions: string | null;
     iconUrl: string | null;
+    category: string | null;
   } | null;
 };
 
@@ -229,14 +231,21 @@ function CreditCard({ credit, onMarkRedeemed }: CreditCardProps) {
 
   const isRedeemed = credit.redeemedAt !== null;
 
+  const CategoryIcon =
+    credit.creditType?.category && credit.creditType.category in categoryIcons
+      ? categoryIcons[credit.creditType.category as keyof typeof categoryIcons]
+      : null;
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            {credit.creditType?.iconUrl && (
+            {credit.creditType?.iconUrl ? (
               <img src={credit.creditType.iconUrl} alt="" className="h-6 w-6 object-contain" />
-            )}
+            ) : CategoryIcon ? (
+              <CategoryIcon className="h-6 w-6 text-gray-600" />
+            ) : null}
             <h3 className="font-medium text-gray-900">{credit.creditType?.displayName}</h3>
           </div>
 

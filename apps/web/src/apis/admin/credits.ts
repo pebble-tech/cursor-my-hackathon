@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
 import { CodesTable, CreditTypesTable } from '@base/core/business.server/events/schemas/schema';
-import { CodeDistributionTypeEnum, CodeStatusEnum } from '@base/core/config/constant';
+import { CodeDistributionTypeEnum, CodeStatusEnum, CreditCategoryCodes } from '@base/core/config/constant';
 import { and, asc, count, db, eq, inArray, sql } from '@base/core/drizzle.server';
 
 import { requireAdmin } from '~/apis/auth';
@@ -61,6 +61,7 @@ const createCreditTypeInputSchema = z
     displayOrder: z.number().int().min(0),
     iconUrl: z.string().url().optional().or(z.literal('')),
     isActive: z.boolean().default(true),
+    category: z.enum(CreditCategoryCodes),
     distributionType: z.enum(['unique', 'universal']).default('unique'),
     universalCode: z.string().optional(),
     universalRedeemUrl: z.string().url().optional().or(z.literal('')),
@@ -133,6 +134,7 @@ const updateCreditTypeInputSchema = z.object({
   displayOrder: z.number().int().min(0).optional(),
   iconUrl: z.string().url().optional().or(z.literal('')),
   isActive: z.boolean().optional(),
+  category: z.enum(CreditCategoryCodes).optional(),
 });
 
 export type UpdateCreditTypeInput = z.infer<typeof updateCreditTypeInputSchema>;

@@ -77,3 +77,13 @@ export const CodeDistributionTypes = {
 export const CodeDistributionTypeCodes = generateCodes(CodeDistributionTypes);
 export const CodeDistributionTypeEnum = createEnumObject(CodeDistributionTypeCodes);
 export type CodeDistributionType = (typeof CodeDistributionTypeEnum)[keyof typeof CodeDistributionTypeEnum];
+
+// Credit Categories
+export const CreditCategories = {
+  FOOD_VOUCHER: { code: 'food_voucher' as const, label: 'Food Voucher' },
+  SOFTWARE_CREDIT: { code: 'software_credit' as const, label: 'Software Credit' },
+  SWAG: { code: 'swag' as const, label: 'Swag' },
+};
+export const CreditCategoryCodes = generateCodes(CreditCategories);
+export const CreditCategoryEnum = createEnumObject(CreditCategoryCodes);
+export type CreditCategory = (typeof CreditCategoryEnum)[keyof typeof CreditCategoryEnum];

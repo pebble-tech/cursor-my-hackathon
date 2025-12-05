@@ -1,0 +1,1 @@
+ALTER TABLE "credit_types" ADD COLUMN "category" text DEFAULT 'software_credit' NOT NULL;

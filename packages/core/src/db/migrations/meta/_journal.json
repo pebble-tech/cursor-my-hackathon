@@ -64,6 +64,13 @@
       "when": 1764743411129,
       "tag": "0008_curly_meteorite",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1764950354694,
+      "tag": "0009_friendly_hobgoblin",
+      "breakpoints": true
     }
   ]
 }
