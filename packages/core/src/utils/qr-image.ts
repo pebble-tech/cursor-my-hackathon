@@ -1,5 +1,5 @@
+import { Jimp } from 'jimp';
 import QRCode from 'qrcode';
-import sharp from 'sharp';
 
 import { env } from '~/config/env';
 import { getLogoUrl } from '~/config/qr';
@@ -19,15 +19,6 @@ const QR_STYLE = {
 
 const LOGO_SIZE_RATIO = 0.25;
 
-async function fetchLogo(): Promise<Buffer> {
-  const logoUrl = getLogoUrl(env.APP_BASE_URL);
-  const response = await fetch(logoUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch logo from ${logoUrl}: ${response.status}`);
-  }
-  return Buffer.from(await response.arrayBuffer());
-}
-
 async function generateQRWithLogo(qrCodeValue: string, width: number, margin: number): Promise<Buffer> {
   const qrBuffer = await QRCode.toBuffer(qrCodeValue, {
     width,
@@ -35,19 +26,17 @@ async function generateQRWithLogo(qrCodeValue: string, width: number, margin: nu
     ...QR_STYLE,
   });
 
-  const logoBuffer = await fetchLogo();
+  const logoUrl = getLogoUrl(env.APP_BASE_URL);
   const logoSize = Math.floor(width * LOGO_SIZE_RATIO);
   const logoPosition = Math.floor((width - logoSize) / 2);
 
-  const resizedLogo = await sharp(logoBuffer)
-    .resize(logoSize, logoSize, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
-    .png()
-    .toBuffer();
+  const qrImage = await Jimp.read(qrBuffer);
+  const logoImage = await Jimp.read(logoUrl);
 
-  return sharp(qrBuffer)
-    .composite([{ input: resizedLogo, top: logoPosition, left: logoPosition }])
-    .png()
-    .toBuffer();
+  logoImage.resize({ w: logoSize, h: logoSize });
+  qrImage.composite(logoImage, logoPosition, logoPosition);
+
+  return qrImage.getBuffer('image/png');
 }
 
 export async function generateQRCodeDataURL(
