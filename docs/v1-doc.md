@@ -5,7 +5,7 @@
 **Document Date:** December 1, 2025  
 **Event Date:** December 6-7, 2025  
 **Expected Participants:** ~1,000  
-**Location:** Monash University Malaysia, Level 2
+**Location:** Monash University Malaysia, Auditorium 1, Building 9
 
 ---
 
@@ -279,7 +279,7 @@ Login with this email to:
 • View your check-in QR code
 • Access your credits after check-in on Dec 6
 
-📍 Check-in opens: Dec 6, 9:00 AM at Level 2, Monash University
+📍 Check-in opens: Dec 6, 9:00 AM at Auditorium 1, Building 9, Monash University
 
 See you soon! 🚀
 The Hackathon Team
@@ -468,7 +468,7 @@ ELSE:
 
 #### 4.1 Registration Check-in Flow
 
-**Location:** Registration desk, Level 2  
+**Location:** Registration desk, Auditorium 1, Building 9  
 **Time:** Dec 6, 9:00 AM - 11:00 PM  
 **Staff:** Ops volunteers with scanner devices
 
@@ -1262,7 +1262,7 @@ CREATE TABLE checkin_records (
 You can also access everything anytime at:
 [Platform URL]
 
-Need help? Visit the help desk at Level 2.
+Need help? Visit the help desk at Auditorium 1, Building 9.
 
 Happy hacking! 🚀
 The Hackathon Team

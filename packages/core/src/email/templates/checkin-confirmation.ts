@@ -79,7 +79,7 @@ export async function sendCheckinConfirmationEmail({
               <div style="margin: 28px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; border-left: 4px solid #18181b;">
                 <p style="margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #18181b;">Event Details</p>
                 <p style="margin: 0 0 4px; font-size: 14px; line-height: 22px; color: #3f3f46;"><strong>Date:</strong> December 6-7, 2025</p>
-                <p style="margin: 0; font-size: 14px; line-height: 22px; color: #3f3f46;"><strong>Venue:</strong> Level 2, Monash University Malaysia</p>
+                <p style="margin: 0; font-size: 14px; line-height: 22px; color: #3f3f46;"><strong>Venue:</strong> Auditorium 1, Building 9, Monash University Malaysia</p>
               </div>
 
               <h2 style="margin: 28px 0 12px; font-size: 16px; font-weight: 600; color: #18181b;">Your Credits</h2>
@@ -122,7 +122,7 @@ Welcome to the Cursor Hackathon! You've been successfully checked in and your cr
 
 EVENT DETAILS
 Date: December 6-7, 2025
-Venue: Level 2, Monash University Malaysia
+Venue: Auditorium 1, Building 9, Monash University Malaysia
 
 YOUR CREDITS
 You've been assigned ${assignedCodes.length} credit${assignedCodes.length !== 1 ? 's' : ''}. Use these codes to access partner services:

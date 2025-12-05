@@ -140,7 +140,7 @@ flowchart TD
 
 - [x] Add `beforeLoad` to fetch session (non-blocking, returns null if not authenticated)
 - [x] Pass session to component via route context
-- [x] Display event info: "Cursor x Anthropic MY Hackathon", "December 6-7, 2025", "Monash University Malaysia, Level 2"
+- [x] Display event info: "Cursor x Anthropic MY Hackathon", "December 6-7, 2025", "Monash University Malaysia, Auditorium 1, Building 9"
 - [x] Conditional button: "Login" (unauthenticated) or "Go to Dashboard" (authenticated)
 - [x] Role-based navigation: Participant → `/dashboard`, Admin → `/admin`, Ops → show "Coming Soon" toast
 - [x] Mobile-responsive layout with centered content

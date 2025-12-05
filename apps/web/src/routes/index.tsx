@@ -46,7 +46,7 @@ function IndexComponent() {
           </div>
           <div className="flex items-center justify-center gap-2">
             <MapPin className="h-5 w-5" />
-            <span className="text-lg">Monash University Malaysia, Level 2</span>
+            <span className="text-lg">Monash University Malaysia, Auditorium 1, Building 9</span>
           </div>
         </div>
 

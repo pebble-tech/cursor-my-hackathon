@@ -417,7 +417,7 @@ flowchart TD
 - [x] Create HTML template with platform URL
 - [x] Include login instructions (use email for magic link)
 - [x] Include event date/time info (Dec 6-7)
-- [x] Include venue info (Level 2, Monash University)
+- [x] Include venue info (Auditorium 1, Building 9, Monash University)
 - [x] Mobile-responsive design
 
 ### Task E.2: Create VIP Welcome Email Template
