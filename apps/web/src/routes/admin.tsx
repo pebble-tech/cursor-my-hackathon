@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet, createFileRoute, redirect, useLocation } from '@tanstack/react-router';
-import { ClipboardList, Gift, LogOut, Menu, Users } from 'lucide-react';
+import { Activity, ClipboardList, Gift, LogOut, Menu, Users } from 'lucide-react';
 
 import { UserRoleEnum } from '@base/core/config/constant';
 import { Button } from '@base/ui/components/button';
@@ -96,6 +96,13 @@ function AdminLayout() {
         </nav>
 
         <div className="absolute bottom-0 w-full border-t border-gray-200 p-4">
+          <Link
+            to="/ops"
+            className="mb-4 flex w-full items-center justify-start rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Activity className="mr-2 h-4 w-4 text-gray-500" />
+            Go to Ops
+          </Link>
           <div className="mb-4 flex items-center px-2">
             <div className="flex-shrink-0">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
@@ -161,6 +168,14 @@ function AdminLayout() {
               </nav>
 
               <div className="absolute bottom-0 w-full border-t border-gray-200 p-4">
+                <Link
+                  to="/ops"
+                  className="mb-4 flex w-full items-center justify-start rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={handleNavClick}
+                >
+                  <Activity className="mr-2 h-4 w-4 text-gray-500" />
+                  Go to Ops
+                </Link>
                 <div className="mb-4 flex items-center px-2">
                   <div className="flex-shrink-0">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
