@@ -1,9 +1,12 @@
 import Papa from 'papaparse';
 
+import { UserType } from '@base/core/config/constant';
+
 export type ParsedParticipant = {
   name: string;
   email: string;
   lumaId?: string;
+  userType: UserType;
 };
 
 export type ParsedRow = {
@@ -70,10 +73,11 @@ export function parseParticipantsCSV(csvContent: string): CSVParseResult {
     const email = (row['email'] || '').trim();
     const name = (row['name'] || '').trim();
     const lumaId = (row['luma_id'] || row['lumaid'] || '').trim() || undefined;
+    const userTypeRaw = (row['user_type'] || row['usertype'] || row['type'] || 'regular').trim().toLowerCase();
 
     const parsedRow: ParsedRow = {
       row: index + 1,
-      data: { name, email, lumaId },
+      data: { name, email, lumaId, userType: 'regular' },
       valid: true,
     };
 
@@ -86,6 +90,11 @@ export function parseParticipantsCSV(csvContent: string): CSVParseResult {
     } else if (!name) {
       parsedRow.valid = false;
       parsedRow.error = 'Name is required';
+    } else if (!['regular', 'vip', 'ops', 'admin'].includes(userTypeRaw)) {
+      parsedRow.valid = false;
+      parsedRow.error = `Invalid user_type: ${userTypeRaw}`;
+    } else {
+      parsedRow.data.userType = userTypeRaw as UserType;
     }
 
     if (parsedRow.valid) {

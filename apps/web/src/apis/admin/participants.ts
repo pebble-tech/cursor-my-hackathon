@@ -169,6 +169,7 @@ const importParticipantsInputSchema = z.object({
       name: z.string().min(1),
       email: z.string().email(),
       lumaId: z.string().optional(),
+      userType: z.enum(UserTypeCodes).default('regular'),
     })
   ),
 });
@@ -227,13 +228,27 @@ export const importParticipants = createServerFn({ method: 'POST' })
       const userId = cuid();
       const qrCodeValue = generateQRCodeValue(userId);
 
+      let role: UserRole = UserRoleEnum.participant;
+      let participantType: ParticipantType = ParticipantTypeEnum.regular;
+
+      if (p.userType === UserTypeEnum.vip) {
+        participantType = ParticipantTypeEnum.vip;
+      } else if (p.userType === UserTypeEnum.ops) {
+        role = UserRoleEnum.ops;
+      } else if (p.userType === UserTypeEnum.admin) {
+        role = UserRoleEnum.admin;
+      } else if (p.userType === UserTypeEnum.regular) {
+        role = UserRoleEnum.participant;
+        participantType = ParticipantTypeEnum.regular;
+      }
+
       toInsert.push({
         id: userId,
         name: p.name,
         email: normalizedEmail,
         emailVerified: false,
-        role: UserRoleEnum.participant,
-        participantType: ParticipantTypeEnum.regular,
+        role,
+        participantType,
         status: ParticipantStatusEnum.registered,
         lumaId: p.lumaId || null,
         qrCodeValue,

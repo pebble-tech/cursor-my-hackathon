@@ -294,7 +294,7 @@ function ParticipantsPage() {
   });
 
   const importMutation = useMutation({
-    mutationFn: (participants: Array<{ name: string; email: string; lumaId?: string }>) =>
+    mutationFn: (participants: Array<{ name: string; email: string; lumaId?: string; userType: UserType }>) =>
       importParticipants({ data: { participants } }),
     onSuccess: (result) => {
       setImportResult(result);
@@ -583,7 +583,10 @@ function ParticipantsPage() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Import Participants</DialogTitle>
-                <DialogDescription>Upload a CSV file with columns: name, email, luma_id (optional)</DialogDescription>
+                <DialogDescription>
+                  Upload a CSV file with columns: name, email, user_type (optional: regular/vip/ops/admin, defaults to
+                  regular), luma_id (optional)
+                </DialogDescription>
               </DialogHeader>
 
               {importResult ? (
@@ -640,6 +643,7 @@ function ParticipantsPage() {
                               <th className="px-3 py-2 text-left font-medium text-gray-600">Row</th>
                               <th className="px-3 py-2 text-left font-medium text-gray-600">Name</th>
                               <th className="px-3 py-2 text-left font-medium text-gray-600">Email</th>
+                              <th className="px-3 py-2 text-left font-medium text-gray-600">User Type</th>
                               <th className="px-3 py-2 text-left font-medium text-gray-600">Status</th>
                             </tr>
                           </thead>
@@ -649,6 +653,11 @@ function ParticipantsPage() {
                                 <td className="px-3 py-2 text-gray-500">{row.row}</td>
                                 <td className="px-3 py-2">{row.data.name}</td>
                                 <td className="px-3 py-2">{row.data.email}</td>
+                                <td className="px-3 py-2">
+                                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
+                                    {row.data.userType}
+                                  </span>
+                                </td>
                                 <td className="px-3 py-2">
                                   {row.valid ? (
                                     <span className="text-green-600">Valid</span>
