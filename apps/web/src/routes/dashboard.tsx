@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { Check, Copy, ExternalLink, LogOut } from 'lucide-react';
+import { Check, Copy, ExternalLink, Info, LogOut, QrCode, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ParticipantStatusEnum } from '@base/core/config/constant';
+import { Badge } from '@base/ui/components/badge';
 import { Button } from '@base/ui/components/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@base/ui/components/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@base/ui/components/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@base/ui/components/tabs';
 
 import { QRCodeDisplay } from '~/components/qr-code-display';
 import { getServerSession } from '~/apis/auth';
@@ -60,7 +64,7 @@ function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900" />
       </div>
     );
@@ -68,7 +72,7 @@ function DashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <p className="text-red-600">Failed to load dashboard</p>
       </div>
     );
@@ -76,10 +80,11 @@ function DashboardPage() {
 
   const { user, credits } = data;
   const isCheckedIn = user.status === ParticipantStatusEnum.checked_in;
+  const pendingCreditsCount = credits.filter((c) => c.redeemedAt === null).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
+      <header className="border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
           <div>
             <h1 className="text-lg font-semibold text-gray-900">{user.name}</h1>
@@ -92,43 +97,72 @@ function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl space-y-6 px-4 py-6">
-        <section className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-center text-sm font-medium text-gray-500">Your QR Code</h2>
-          {user.qrCodeValue ? (
-            <>
-              <QRCodeDisplay value={user.qrCodeValue} size={280} />
-              <div className="mt-4 space-y-1 text-center text-sm text-gray-600">
-                <p>Show this at registration desk</p>
-                <p>Show at food stations</p>
-              </div>
-              <p className="mt-3 text-center text-xs text-gray-400">This QR never expires</p>
-            </>
-          ) : (
-            <p className="text-center text-gray-500">QR code not available</p>
-          )}
-        </section>
+      <main className="mx-auto max-w-2xl px-4 py-6">
+        <Tabs defaultValue="qr" className="w-full">
+          <TabsList className="mb-6 grid w-full grid-cols-2">
+            <TabsTrigger value="qr" className="gap-2">
+              <QrCode className="h-4 w-4" />
+              My QR Code
+            </TabsTrigger>
+            <TabsTrigger value="credits" className="gap-2">
+              <Ticket className="h-4 w-4" />
+              My Credits
+              {isCheckedIn && pendingCreditsCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5">
+                  {pendingCreditsCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        <section className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
-            Your Credits {isCheckedIn && credits.length > 0 && `(${credits.length})`}
-          </h2>
+          <TabsContent value="qr">
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-base font-medium text-gray-500">Your QR Code</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center">
+                {user.qrCodeValue ? (
+                  <>
+                    <QRCodeDisplay value={user.qrCodeValue} size={280} />
+                    <div className="mt-6 space-y-1 text-center text-sm text-gray-600">
+                      <p>Show this at registration desk</p>
+                      <p>Show at food stations</p>
+                    </div>
+                    <p className="mt-4 text-xs text-gray-400">This QR never expires</p>
+                  </>
+                ) : (
+                  <p className="py-8 text-center text-gray-500">QR code not available</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {!isCheckedIn ? (
-            <div className="rounded-lg bg-gray-50 p-6 text-center">
-              <p className="text-gray-600">Your credits will appear after check-in</p>
-            </div>
-          ) : credits.length === 0 ? (
-            <div className="rounded-lg bg-gray-50 p-6 text-center">
-              <p className="text-gray-600">No credits available</p>
-            </div>
-          ) : (
-            <CreditsSection
-              credits={credits}
-              onMarkRedeemed={(codeId, redeemed) => redeemMutation.mutate({ data: { codeId, redeemed } })}
-            />
-          )}
-        </section>
+          <TabsContent value="credits">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Your Credits {isCheckedIn && credits.length > 0 && `(${credits.length})`}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!isCheckedIn ? (
+                  <div className="rounded-lg bg-gray-50 p-8 text-center">
+                    <p className="text-gray-600">Your credits will appear after check-in</p>
+                  </div>
+                ) : credits.length === 0 ? (
+                  <div className="rounded-lg bg-gray-50 p-8 text-center">
+                    <p className="text-gray-600">No credits available</p>
+                  </div>
+                ) : (
+                  <CreditsSection
+                    credits={credits}
+                    onMarkRedeemed={(codeId, redeemed) => redeemMutation.mutate({ data: { codeId, redeemed } })}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
@@ -142,13 +176,9 @@ function StatusBadge({ status, checkedInAt }: { status: string; checkedInAt?: Da
   };
 
   return (
-    <span
-      className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-        isCheckedIn ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-      }`}
-    >
+    <Badge variant={isCheckedIn ? 'default' : 'secondary'} className={isCheckedIn ? 'bg-green-600' : ''}>
       {isCheckedIn ? `Checked in${checkedInAt ? ` at ${formatTime(checkedInAt)}` : ''}` : 'Registered'}
-    </span>
+    </Badge>
   );
 }
 
@@ -181,18 +211,33 @@ function CreditsSection({ credits, onMarkRedeemed }: CreditsSectionProps) {
     return credit.redeemedAt === null;
   });
 
+  const filterOptions: { value: FilterType; label: string; count: number }[] = [
+    { value: 'all', label: 'All', count: credits.length },
+    { value: 'pending', label: 'Pending', count: credits.filter((c) => c.redeemedAt === null).length },
+    { value: 'redeemed', label: 'Redeemed', count: credits.filter((c) => c.redeemedAt !== null).length },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        {(['all', 'pending', 'redeemed'] as const).map((f) => (
+        {filterOptions.map((option) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
-              filter === f ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            key={option.value}
+            onClick={() => setFilter(option.value)}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
+              filter === option.value
+                ? 'bg-gray-900 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {option.label}
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-xs ${
+                filter === option.value ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
+              }`}
+            >
+              {option.count}
+            </span>
           </button>
         ))}
       </div>
@@ -202,7 +247,7 @@ function CreditsSection({ credits, onMarkRedeemed }: CreditsSectionProps) {
           <CreditCard key={credit.id} credit={credit} onMarkRedeemed={onMarkRedeemed} />
         ))}
         {filteredCredits.length === 0 && (
-          <p className="py-4 text-center text-sm text-gray-500">No credits in this category</p>
+          <p className="py-8 text-center text-sm text-gray-500">No credits in this category</p>
         )}
       </div>
     </div>
@@ -216,7 +261,6 @@ type CreditCardProps = {
 
 function CreditCard({ credit, onMarkRedeemed }: CreditCardProps) {
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -236,64 +280,157 @@ function CreditCard({ credit, onMarkRedeemed }: CreditCardProps) {
       ? categoryIcons[credit.creditType.category as keyof typeof categoryIcons]
       : null;
 
+  const IconComponent = credit.creditType?.iconUrl ? null : CategoryIcon || Ticket;
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
+    <div
+      className={`rounded-xl border-2 bg-white p-4 transition-all ${
+        isRedeemed ? 'border-gray-100 bg-gray-50/50' : 'border-gray-200 shadow-sm'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+              isRedeemed ? 'bg-gray-100' : 'bg-gray-900'
+            }`}
+          >
             {credit.creditType?.iconUrl ? (
-              <img src={credit.creditType.iconUrl} alt="" className="h-6 w-6 object-contain" />
-            ) : CategoryIcon ? (
-              <CategoryIcon className="h-6 w-6 text-gray-600" />
+              <img
+                src={credit.creditType.iconUrl}
+                alt=""
+                className={`h-6 w-6 object-contain ${isRedeemed ? 'opacity-50' : 'invert'}`}
+              />
+            ) : IconComponent ? (
+              <IconComponent className={`h-5 w-5 ${isRedeemed ? 'text-gray-400' : 'text-white'}`} />
             ) : null}
-            <h3 className="font-medium text-gray-900">{credit.creditType?.displayName}</h3>
           </div>
-
-          <div className="mt-2 flex items-center gap-2">
-            <code className="rounded bg-gray-100 px-2 py-1 font-mono text-sm">{credit.codeValue}</code>
-            <button
-              onClick={handleCopy}
-              className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-              title="Copy code"
-            >
-              {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-            </button>
+          <div>
+            <h3 className={`font-semibold ${isRedeemed ? 'text-gray-500' : 'text-gray-900'}`}>
+              {credit.creditType?.displayName}
+            </h3>
           </div>
+        </div>
+        <Badge
+          variant={isRedeemed ? 'secondary' : 'outline'}
+          className={isRedeemed ? 'bg-green-100 text-green-700' : ''}
+        >
+          {isRedeemed ? 'Redeemed' : 'Pending'}
+        </Badge>
+      </div>
 
+      <div className="mt-4">
+        <div
+          className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
+            isRedeemed ? 'border-gray-200 bg-gray-100' : 'border-gray-200 bg-gray-50'
+          }`}
+        >
+          <code className={`font-mono text-sm font-medium ${isRedeemed ? 'text-gray-500' : 'text-gray-800'}`}>
+            {credit.codeValue}
+          </code>
+          <button
+            onClick={handleCopy}
+            className={`rounded-md p-1.5 transition-colors ${
+              isRedeemed ? 'text-gray-400 hover:bg-gray-200' : 'text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+            }`}
+            title="Copy code"
+          >
+            {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           {credit.redeemUrl && (
             <a
               href={credit.redeemUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
             >
-              Redeem here <ExternalLink className="h-3 w-3" />
+              Redeem here
+              <ExternalLink className="h-3.5 w-3.5" />
             </a>
           )}
-
           {credit.creditType?.webInstructions && (
-            <div className="mt-2">
-              <button onClick={() => setExpanded(!expanded)} className="text-sm text-gray-500 hover:text-gray-700">
-                {expanded ? 'Hide instructions' : 'Show instructions'}
-              </button>
-              {expanded && <p className="mt-2 text-sm text-gray-600">{credit.creditType.webInstructions}</p>}
-            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700">
+                  <Info className="h-3.5 w-3.5" />
+                  Instructions
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-900">
+                      {credit.creditType?.iconUrl ? (
+                        <img src={credit.creditType.iconUrl} alt="" className="h-5 w-5 object-contain invert" />
+                      ) : IconComponent ? (
+                        <IconComponent className="h-4 w-4 text-white" />
+                      ) : null}
+                    </div>
+                    {credit.creditType?.displayName}
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-5">
+                  <div className="rounded-lg bg-amber-50 p-4">
+                    <p className="mb-2 text-sm font-semibold text-amber-800">How to Redeem</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-line text-amber-900">
+                      {credit.creditType.webInstructions}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 border-t border-gray-100 pt-4">
+                    <div>
+                      <p className="mb-2 text-xs font-medium text-gray-500">Your Code</p>
+                      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                        <code className="font-mono text-sm font-semibold text-gray-900">{credit.codeValue}</code>
+                        <button
+                          onClick={handleCopy}
+                          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                          title="Copy code"
+                        >
+                          {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {credit.redeemUrl && (
+                      <div>
+                        <p className="mb-2 text-xs font-medium text-gray-500">Redemption Link</p>
+                        <a
+                          href={credit.redeemUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+                        >
+                          Open redemption page
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
-
         <label className="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             checked={isRedeemed}
             onChange={(e) => onMarkRedeemed(credit.id, e.target.checked)}
-            className="h-5 w-5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
           />
-          <span className="text-sm text-gray-600">Redeemed</span>
+          <span className="text-sm text-gray-600">Mark done</span>
         </label>
       </div>
 
       {isRedeemed && credit.redeemedAt && (
-        <p className="mt-2 text-xs text-gray-400">Redeemed on {new Date(credit.redeemedAt).toLocaleDateString()}</p>
+        <p className="mt-3 text-xs text-gray-400">Redeemed on {new Date(credit.redeemedAt).toLocaleDateString()}</p>
       )}
     </div>
   );
