@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { Check, Copy, ExternalLink, Info, LogOut, QrCode, Ticket } from 'lucide-react';
+import { Award, Check, Copy, ExternalLink, Info, LogOut, QrCode, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ParticipantStatusEnum } from '@base/core/config/constant';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@base/ui/components/ca
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@base/ui/components/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@base/ui/components/tabs';
 
+import { CertificateDisplay } from '~/components/certificate-display';
 import { QRCodeDisplay } from '~/components/qr-code-display';
 import { getServerSession } from '~/apis/auth';
 import { getParticipantDashboard, markCreditRedeemed } from '~/apis/participant/dashboard';
@@ -99,7 +100,7 @@ function DashboardPage() {
 
       <main className="mx-auto max-w-2xl px-4 py-6">
         <Tabs defaultValue="qr" className="w-full">
-          <TabsList className="mb-6 grid w-full grid-cols-2">
+          <TabsList className="mb-6 grid w-full grid-cols-3">
             <TabsTrigger value="qr" className="gap-2">
               <QrCode className="h-4 w-4" />
               My QR Code
@@ -112,6 +113,10 @@ function DashboardPage() {
                   {pendingCreditsCount}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="certificate" className="gap-2" disabled={!isCheckedIn}>
+              <Award className="h-4 w-4" />
+              Certificate
             </TabsTrigger>
           </TabsList>
 
@@ -158,6 +163,23 @@ function DashboardPage() {
                     credits={credits}
                     onMarkRedeemed={(codeId, redeemed) => redeemMutation.mutate({ data: { codeId, redeemed } })}
                   />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="certificate">
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-base font-medium text-gray-500">Your Certificate</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center">
+                {isCheckedIn && user.role ? (
+                  <CertificateDisplay participantName={user.name} role={user.role} />
+                ) : (
+                  <div className="rounded-lg bg-gray-50 p-8 text-center">
+                    <p className="text-gray-600">Check in at the event to unlock your certificate</p>
+                  </div>
                 )}
               </CardContent>
             </Card>

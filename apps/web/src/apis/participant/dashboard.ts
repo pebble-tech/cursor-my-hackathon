@@ -24,6 +24,7 @@ export const getParticipantDashboard = createServerFn({ method: 'GET' }).handler
       status: true,
       qrCodeValue: true,
       checkedInAt: true,
+      role: true,
     },
   });
 
