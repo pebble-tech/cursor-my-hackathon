@@ -12,7 +12,8 @@ import {
   UserRoleEnum,
 } from '@base/core/config/constant';
 import { and, asc, count, db, eq, inArray, isNull, sql } from '@base/core/drizzle.server';
-import { sendGiveawayNotificationEmail } from '@base/core/email/templates/giveaway-notification';
+import { BATCH_SIZE, sendBatchEmails } from '@base/core/email/client';
+import { GIVEAWAY_EMAIL_SUBJECT, generateGiveawayEmailContent } from '@base/core/email/templates/giveaway-notification';
 import { logError, logInfo } from '@base/core/utils/logging';
 
 import { requireAdmin } from '~/apis/auth';
@@ -543,7 +544,7 @@ export const executeGiveaway = createServerFn({ method: 'POST' })
       checkinTypeId,
     });
 
-    sendGiveawayEmails(assignedCodes, creditType);
+    await sendGiveawayEmails(assignedCodes, creditType);
 
     return {
       success: true,
@@ -558,15 +559,31 @@ export const executeGiveaway = createServerFn({ method: 'POST' })
     };
   });
 
-function sendGiveawayEmails(
+const DELAY_BETWEEN_BATCHES_MS = 600;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendGiveawayEmails(
   assignedCodes: AssignedCodeForEmail[],
   creditType: { displayName: string; emailInstructions: string | null }
 ) {
-  for (const assigned of assignedCodes) {
-    sendGiveawayNotificationEmail({
-      to: assigned.userEmail,
-      name: assigned.userName,
-      codes: [
+  logInfo('Starting giveaway email batch', { count: assignedCodes.length, batchSize: BATCH_SIZE });
+
+  const batches: AssignedCodeForEmail[][] = [];
+  for (let i = 0; i < assignedCodes.length; i += BATCH_SIZE) {
+    batches.push(assignedCodes.slice(i, i + BATCH_SIZE));
+  }
+
+  let totalSent = 0;
+  let totalFailed = 0;
+
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+
+    const batchEmails = batch.map((assigned) => {
+      const { html, text } = generateGiveawayEmailContent(assigned.userName, [
         {
           creditType: {
             displayName: creditType.displayName,
@@ -577,23 +594,50 @@ function sendGiveawayEmails(
             redeemUrl: assigned.redeemUrl,
           },
         },
-      ],
-    })
-      .then((result) => {
-        if (!result.success) {
+      ]);
+
+      return {
+        to: assigned.userEmail,
+        subject: GIVEAWAY_EMAIL_SUBJECT,
+        html,
+        text,
+      };
+    });
+
+    const result = await sendBatchEmails(batchEmails, { batchValidation: 'permissive' });
+
+    if (!result.success) {
+      logError('Failed to send giveaway email batch', {
+        batchIndex,
+        batchSize: batch.length,
+        error: result.error,
+      });
+      totalFailed += batch.length;
+    } else {
+      result.results.forEach((emailResult) => {
+        const assigned = batch[emailResult.emailIndex];
+        if (emailResult.success) {
+          totalSent++;
+        } else {
+          totalFailed++;
           logError('Failed to send giveaway notification email', {
             userId: assigned.userId,
             email: assigned.userEmail,
-            error: result.error,
+            error: emailResult.error,
           });
         }
-      })
-      .catch((err) => {
-        logError('Exception sending giveaway notification email', {
-          userId: assigned.userId,
-          email: assigned.userEmail,
-          error: err instanceof Error ? err.message : 'Unknown error',
-        });
       });
+    }
+
+    if (batchIndex < batches.length - 1) {
+      await sleep(DELAY_BETWEEN_BATCHES_MS);
+    }
   }
+
+  logInfo('Giveaway email batch complete', {
+    total: assignedCodes.length,
+    sent: totalSent,
+    failed: totalFailed,
+    batches: batches.length,
+  });
 }

@@ -18,7 +18,12 @@ type SendGiveawayNotificationEmailParams = {
   codes: GiveawayCode[];
 };
 
-export async function sendGiveawayNotificationEmail({ to, name, codes }: SendGiveawayNotificationEmailParams) {
+type GiveawayEmailContent = {
+  html: string;
+  text: string;
+};
+
+export function generateGiveawayEmailContent(name: string, codes: GiveawayCode[]): GiveawayEmailContent {
   const greeting = `Hi ${name}`;
 
   const creditsSection = codes
@@ -98,9 +103,17 @@ ${creditsText}
 
 You can view all your credits anytime in your dashboard: ${env.APP_BASE_URL}/dashboard`;
 
+  return { html, text };
+}
+
+export const GIVEAWAY_EMAIL_SUBJECT = "You've Received a New Credit! - Cursor Hackathon";
+
+export async function sendGiveawayNotificationEmail({ to, name, codes }: SendGiveawayNotificationEmailParams) {
+  const { html, text } = generateGiveawayEmailContent(name, codes);
+
   return sendEmail({
     to,
-    subject: "You've Received a New Credit! - Cursor Hackathon",
+    subject: GIVEAWAY_EMAIL_SUBJECT,
     html,
     text,
   });
