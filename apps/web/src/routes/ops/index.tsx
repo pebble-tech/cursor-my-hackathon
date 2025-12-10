@@ -210,7 +210,11 @@ function OpsDashboardPage() {
   const [statusResult, setStatusResult] = useState<GuestStatusResult | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: opsProfile } = useQuery({
+  const {
+    data: opsProfile,
+    isLoading: isOpsProfileLoading,
+    error: opsProfileError,
+  } = useQuery({
     queryKey: ['ops-profile'],
     queryFn: () => getOpsProfile(),
     enabled: mode === 'certificate',
@@ -470,7 +474,11 @@ function OpsDashboardPage() {
               <CardTitle className="text-base font-medium text-gray-500">Your Certificate</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-6">
-              {opsProfile ? (
+              {isOpsProfileLoading ? (
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900" />
+              ) : opsProfileError ? (
+                <p className="text-red-600">Failed to load profile</p>
+              ) : opsProfile ? (
                 <>
                   <CertificateNameEditor
                     currentName={opsProfile.name}
@@ -493,9 +501,7 @@ function OpsDashboardPage() {
                     </div>
                   )}
                 </>
-              ) : (
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900" />
-              )}
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
