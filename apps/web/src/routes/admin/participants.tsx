@@ -29,6 +29,7 @@ import { Button } from '@base/ui/components/button';
 import { DataTable } from '@base/ui/components/data-table';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -514,9 +515,9 @@ function ParticipantsPage() {
                   )}
 
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
-                      Close
-                    </Button>
+                    <DialogClose asChild>
+                      <Button variant="outline">Close</Button>
+                    </DialogClose>
                   </DialogFooter>
                 </div>
               ) : (
@@ -545,9 +546,9 @@ function ParticipantsPage() {
                   )}
 
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
-                      Cancel
-                    </Button>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
                     <Button
                       onClick={() => sendEmailsMutation.mutate()}
                       disabled={sendEmailsMutation.isPending || emailStats?.pendingCount === 0}
@@ -917,9 +918,9 @@ function ParticipantsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditUserDialogOpen(false)}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
             <Button onClick={handleUpdateUser} disabled={!newUserName || !newUserEmail || updateUserMutation.isPending}>
               {updateUserMutation.isPending ? (
                 <>
@@ -953,9 +954,9 @@ function ParticipantsPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteUserDialogOpen(false)}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
             <Button variant="destructive" onClick={handleConfirmDelete} disabled={deleteUserMutation.isPending}>
               {deleteUserMutation.isPending ? (
                 <>
@@ -997,9 +998,9 @@ function ParticipantsPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSendEmailDialogOpen(false)}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
             <Button onClick={handleConfirmSendEmail} disabled={sendEmailToUserMutation.isPending}>
               {sendEmailToUserMutation.isPending ? (
                 <>
