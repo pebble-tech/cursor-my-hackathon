@@ -4,7 +4,7 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { Award, Check, Copy, ExternalLink, Eye, Info, LogOut, QrCode, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { ParticipantStatusEnum } from '@base/core/config/constant';
+import { ParticipantStatusEnum, UserRoleEnum } from '@base/core/config/constant';
 import { Badge } from '@base/ui/components/badge';
 import { Button } from '@base/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@base/ui/components/card';
@@ -16,6 +16,7 @@ import { QRCodeDisplay } from '~/components/qr-code-display';
 import { getServerSession } from '~/apis/auth';
 import { getParticipantDashboard, markCreditRedeemed, updateProfileName } from '~/apis/participant/dashboard';
 import { authClient } from '~/utils/auth-client';
+import { getDashboardUrlForUser } from '~/utils/auth-redirect';
 import { categoryIcons } from '~/utils/credit-category-icons';
 
 export const Route = createFileRoute('/dashboard')({
@@ -27,6 +28,13 @@ export const Route = createFileRoute('/dashboard')({
     if (!session) {
       throw redirect({ to: '/login' });
     }
+
+    const role = session.user.role;
+    if (role !== UserRoleEnum.participant) {
+      const dashboardUrl = getDashboardUrlForUser(session.user);
+      throw redirect({ to: dashboardUrl });
+    }
+
     return { session };
   },
   component: DashboardPage,
