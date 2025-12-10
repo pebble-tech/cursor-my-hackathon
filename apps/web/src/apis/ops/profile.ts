@@ -1,18 +1,13 @@
 import { createServerFn } from '@tanstack/react-start';
-import { getWebRequest } from '@tanstack/react-start/server';
 
-import { auth } from '@base/core/auth/auth';
 import { UsersTable } from '@base/core/auth/schema';
 import { db, eq } from '@base/core/drizzle.server';
 import { validateCertificateName } from '@base/core/utils/certificate-name';
 
+import { requireOpsOrAdmin } from '~/apis/auth';
+
 export const getOpsProfile = createServerFn({ method: 'GET' }).handler(async () => {
-  const request = getWebRequest();
-  if (!request) throw new Error('No request context');
-
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) throw new Error('Unauthorized');
-
+  const session = await requireOpsOrAdmin();
   const userId = session.user.id;
 
   const user = await db.query.users.findFirst({
@@ -36,12 +31,7 @@ export const getOpsProfile = createServerFn({ method: 'GET' }).handler(async () 
 export const updateOpsProfileName = createServerFn({ method: 'POST' })
   .validator((data: { name: string }) => data)
   .handler(async ({ data }) => {
-    const request = getWebRequest();
-    if (!request) throw new Error('No request context');
-
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session) throw new Error('Unauthorized');
-
+    const session = await requireOpsOrAdmin();
     const userId = session.user.id;
 
     const currentUser = await db.query.users.findFirst({
