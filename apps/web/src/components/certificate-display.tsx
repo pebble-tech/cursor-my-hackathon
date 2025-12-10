@@ -1,66 +1,93 @@
 import { useRef, useState } from 'react';
-import { toPng } from 'html-to-image';
-import { Download, Printer } from 'lucide-react';
+import { Download } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { CERTIFICATE_CONTENT, HACKATHON_DATE } from '@base/core/config/certificate';
-import type { UserRole } from '@base/core/config/constant';
-import { Awards } from '@base/ui/components/award';
+import { CERTIFICATE_TEMPLATE_CONFIG } from '@base/core/config/certificate';
+import { formatNameForCertificate } from '@base/core/utils/certificate-name';
 import { Button } from '@base/ui/components/button';
+
+import { exportCertificateAsPDF } from '~/utils/certificate-export';
 
 interface CertificateDisplayProps {
   participantName: string;
-  role: UserRole;
 }
 
-export function CertificateDisplay({ participantName, role }: CertificateDisplayProps) {
+export function CertificateDisplay({ participantName }: CertificateDisplayProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
-  const content = CERTIFICATE_CONTENT[role];
+  const formattedName = formatNameForCertificate(participantName);
+  const { nameArea, font, displayScale, image } = CERTIFICATE_TEMPLATE_CONFIG;
 
-  const handleDownload = async () => {
-    if (!certificateRef.current) return;
+  const scaledWidth = image.width * displayScale;
+  const scaledHeight = image.height * displayScale;
 
-    setIsDownloading(true);
+  const handleExportPDF = async () => {
+    if (!certificateRef.current || !imageLoaded) return;
+
+    setIsExporting(true);
     try {
-      const dataUrl = await toPng(certificateRef.current, {
-        quality: 1,
-        pixelRatio: 2,
-      });
-
-      const link = document.createElement('a');
-      link.download = `certificate-${participantName.toLowerCase().replace(/\s+/g, '-')}.png`;
-      link.href = dataUrl;
-      link.click();
+      await exportCertificateAsPDF(certificateRef.current, participantName);
+      toast.success('Certificate downloaded');
+    } catch {
+      toast.error('Failed to export certificate');
     } finally {
-      setIsDownloading(false);
+      setIsExporting(false);
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const namePositionX = nameArea.centerX * displayScale;
+  const namePositionY = nameArea.centerY * displayScale;
+  const scaledFontSize = formattedName.fontSize * displayScale;
+  const lineHeight = scaledFontSize * 1.2;
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div ref={certificateRef} className="bg-white p-4 print:p-0">
-        <Awards
-          variant="certificate"
-          title={content.title}
-          subtitle={content.subtitle}
-          recipient={participantName}
-          date={HACKATHON_DATE}
-        />
+      <div className="relative">
+        <div
+          ref={certificateRef}
+          className="relative bg-white"
+          style={{
+            width: `${scaledWidth}px`,
+            height: `${scaledHeight}px`,
+          }}
+        >
+          <img
+            src="/certificate-participant-template.png"
+            alt="Certificate template"
+            className="absolute inset-0 h-full w-full object-contain"
+            crossOrigin="anonymous"
+            onLoad={() => setImageLoaded(true)}
+          />
+          <div
+            className="absolute flex flex-col items-center justify-center text-center"
+            style={{
+              left: `${namePositionX}px`,
+              top: `${namePositionY}px`,
+              transform: 'translate(-50%, -50%)',
+              maxWidth: `${nameArea.maxWidth * displayScale}px`,
+              fontFamily: font.family,
+              fontSize: `${scaledFontSize}px`,
+              fontWeight: font.weight,
+              color: font.color,
+              lineHeight: `${lineHeight}px`,
+              textTransform: 'uppercase',
+            }}
+          >
+            {formattedName.lines.map((line, index) => (
+              <div key={index} style={{ height: `${lineHeight}px` }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="flex gap-3 print:hidden">
-        <Button onClick={handleDownload} disabled={isDownloading}>
+      <div className="flex flex-col items-center gap-3">
+        <Button onClick={handleExportPDF} disabled={isExporting || !imageLoaded}>
           <Download className="mr-2 h-4 w-4" />
-          {isDownloading ? 'Downloading...' : 'Download PNG'}
-        </Button>
-        <Button variant="outline" onClick={handlePrint}>
-          <Printer className="mr-2 h-4 w-4" />
-          Print / Save PDF
+          {isExporting ? 'Generating PDF...' : 'Download PDF'}
         </Button>
       </div>
     </div>

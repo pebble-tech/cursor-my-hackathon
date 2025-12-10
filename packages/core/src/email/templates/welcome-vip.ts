@@ -39,7 +39,7 @@ export async function sendVIPWelcomeEmail({ to, name, qrCodeValue }: SendVIPWelc
               <div style="margin: 28px 0; padding: 20px; background-color: #f8fafc; border-radius: 8px; border-left: 4px solid #18181b;">
                 <p style="margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #18181b;">Event Details</p>
                 <p style="margin: 0 0 4px; font-size: 14px; line-height: 22px; color: #3f3f46;"><strong>Date:</strong> December 6-7, 2025</p>
-                <p style="margin: 0 0 4px; font-size: 14px; line-height: 22px; color: #3f3f46;"><strong>Venue:</strong> Auditorium 1, Building 9, Monash University Malaysia</p>
+                <p style="margin: 0 0 4px; font-size: 14px; line-height: 22px; color: #3f3f46;"><strong>Venue:</strong> Level 2, Monash University Malaysia</p>
                 <p style="margin: 0; font-size: 14px; line-height: 22px; color: #3f3f46;"><strong>Registration:</strong> Please arrive at 9:00 AM for registration on both days</p>
               </div>
 
@@ -70,7 +70,7 @@ You're registered as a VIP guest for the Cursor Hackathon. We're honored to have
 
 EVENT DETAILS
 Date: December 6-7, 2025
-Venue: Auditorium 1, Building 9, Monash University Malaysia
+Venue: Level 2, Monash University Malaysia
 Registration: Please arrive at 9:00 AM for registration on both days
 
 YOUR VIP QR CODE

@@ -15,6 +15,7 @@ import { Route as OpsRouteImport } from './routes/ops'
 import { Route as LoginSuccessRouteImport } from './routes/login-success'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CertificateRouteImport } from './routes/certificate'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
@@ -44,6 +45,11 @@ const LoginRoute = LoginRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CertificateRoute = CertificateRouteImport.update({
+  id: '/certificate',
+  path: '/certificate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -90,6 +96,7 @@ const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/certificate': typeof CertificateRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/login-success': typeof LoginSuccessRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/certificate': typeof CertificateRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/login-success': typeof LoginSuccessRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/certificate': typeof CertificateRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/login-success': typeof LoginSuccessRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/certificate'
     | '/dashboard'
     | '/login'
     | '/login-success'
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/certificate'
     | '/dashboard'
     | '/login'
     | '/login-success'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/certificate'
     | '/dashboard'
     | '/login'
     | '/login-success'
@@ -168,6 +180,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  CertificateRoute: typeof CertificateRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   LoginSuccessRoute: typeof LoginSuccessRoute
@@ -223,6 +236,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificate': {
+      id: '/certificate'
+      path: '/certificate'
+      fullPath: '/certificate'
+      preLoaderRoute: typeof CertificateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -317,6 +337,7 @@ const OpsRouteWithChildren = OpsRoute._addFileChildren(OpsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  CertificateRoute: CertificateRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   LoginSuccessRoute: LoginSuccessRoute,

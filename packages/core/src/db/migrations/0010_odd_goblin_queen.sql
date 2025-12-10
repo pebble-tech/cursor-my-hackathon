@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "is_name_updated" boolean DEFAULT false NOT NULL;
