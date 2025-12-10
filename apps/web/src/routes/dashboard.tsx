@@ -186,7 +186,7 @@ function DashboardPage() {
                 <CardTitle className="text-base font-medium text-gray-500">Your Certificate</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center gap-6">
-                {isCheckedIn && user.role ? (
+                {isCheckedIn ? (
                   <>
                     <CertificateNameEditor
                       currentName={user.name}
