@@ -50,8 +50,9 @@ export function formatNameForCertificate(name: string): FormattedName {
     return { lines: [trimmedName], fontSize: font.baseSize };
   }
 
-  const scaledFontSize = calculateFontSizeForText(trimmedName, maxWidth, font.minSize, font.baseSize);
-  if (scaledFontSize >= font.minSize) {
+  const widthAtMinSize = estimateTextWidth(trimmedName, font.minSize);
+  if (widthAtMinSize <= maxWidth) {
+    const scaledFontSize = calculateFontSizeForText(trimmedName, maxWidth, font.minSize, font.baseSize);
     return { lines: [trimmedName], fontSize: scaledFontSize };
   }
 

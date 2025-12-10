@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertTriangle, Check, Lock, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,6 +17,10 @@ type CertificateNameEditorProps = {
 export function CertificateNameEditor({ currentName, onSave, isSaving, isLocked }: CertificateNameEditorProps) {
   const [editedName, setEditedName] = useState(currentName);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  useEffect(() => {
+    setEditedName(currentName);
+  }, [currentName]);
   const [pendingName, setPendingName] = useState<string>('');
 
   const handleSaveClick = () => {
@@ -91,10 +95,10 @@ export function CertificateNameEditor({ currentName, onSave, isSaving, isLocked 
           if (!open && isSaving) {
             return;
           }
-          if (!open && !pendingName) {
-            return;
-          }
           setShowConfirmDialog(open);
+          if (!open) {
+            setPendingName('');
+          }
         }}
       >
         <DialogContent className="sm:max-w-md">

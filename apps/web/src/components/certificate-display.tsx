@@ -17,6 +17,7 @@ export function CertificateDisplay({ participantName, templateType = 'participan
   const certificateRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const formattedName = formatNameForCertificate(participantName);
   const { nameArea, font, displayScale, image } = CERTIFICATE_TEMPLATE_CONFIG;
@@ -60,6 +61,7 @@ export function CertificateDisplay({ participantName, templateType = 'participan
             className="absolute inset-0 h-full w-full object-contain"
             crossOrigin="anonymous"
             onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
           />
           <div
             className="absolute flex flex-col items-center justify-center text-center"
@@ -86,10 +88,14 @@ export function CertificateDisplay({ participantName, templateType = 'participan
       </div>
 
       <div className="flex flex-col items-center gap-3">
-        <Button onClick={handleExportPDF} disabled={isExporting || !imageLoaded}>
-          <Download className="mr-2 h-4 w-4" />
-          {isExporting ? 'Generating PDF...' : 'Download PDF'}
-        </Button>
+        {imageError ? (
+          <p className="text-sm text-red-600">Failed to load certificate template</p>
+        ) : (
+          <Button onClick={handleExportPDF} disabled={isExporting || !imageLoaded}>
+            <Download className="mr-2 h-4 w-4" />
+            {isExporting ? 'Generating PDF...' : 'Download PDF'}
+          </Button>
+        )}
       </div>
     </div>
   );
