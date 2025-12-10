@@ -1,9 +1,19 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import { CodesTable, CreditTypesTable } from '@base/core/business.server/events/schemas/schema';
-import { CodeDistributionTypeEnum, CodeStatusEnum, CreditCategoryCodes } from '@base/core/config/constant';
-import { and, asc, count, db, eq, inArray, sql } from '@base/core/drizzle.server';
+import { UsersTable } from '@base/core/auth/schema';
+import { CheckinRecordsTable, CodesTable, CreditTypesTable } from '@base/core/business.server/events/schemas/schema';
+import {
+  CodeDistributionTypeEnum,
+  CodeStatusEnum,
+  CreditCategoryCodes,
+  ParticipantTypeEnum,
+  UserRoleCodes,
+  UserRoleEnum,
+} from '@base/core/config/constant';
+import { and, asc, count, db, eq, inArray, isNull, sql } from '@base/core/drizzle.server';
+import { sendGiveawayNotificationEmail } from '@base/core/email/templates/giveaway-notification';
+import { logError, logInfo } from '@base/core/utils/logging';
 
 import { requireAdmin } from '~/apis/auth';
 
@@ -320,3 +330,264 @@ export const importCodes = createServerFn({ method: 'POST' })
       skipped,
     };
   });
+
+const giveawayPreviewInputSchema = z.object({
+  creditTypeId: z.string().min(1, 'Credit type ID is required'),
+  roles: z.array(z.enum(UserRoleCodes)).min(1, 'At least one role is required'),
+  checkinTypeId: z.string().optional(),
+});
+
+export type GiveawayPreviewInput = z.infer<typeof giveawayPreviewInputSchema>;
+
+export type GiveawayPreviewResult = {
+  matchingUsers: number;
+  availableCodes: number;
+  canProceed: boolean;
+  creditType: {
+    id: string;
+    name: string;
+    displayName: string;
+    isActive: boolean;
+  };
+};
+
+export const getGiveawayPreview = createServerFn({ method: 'POST' })
+  .validator((data: GiveawayPreviewInput) => giveawayPreviewInputSchema.parse(data))
+  .handler(async ({ data }): Promise<GiveawayPreviewResult> => {
+    await requireAdmin();
+
+    const { creditTypeId, roles, checkinTypeId } = data;
+
+    const creditType = await db.query.creditTypes.findFirst({
+      where: eq(CreditTypesTable.id, creditTypeId),
+    });
+
+    if (!creditType) {
+      throw new Error('Credit type not found');
+    }
+
+    const matchingUserIds = await getMatchingUserIds(roles, checkinTypeId);
+
+    const [availableCodesResult] = await db
+      .select({ count: count() })
+      .from(CodesTable)
+      .where(and(eq(CodesTable.creditTypeId, creditTypeId), eq(CodesTable.status, CodeStatusEnum.unassigned)));
+
+    const availableCodes = availableCodesResult?.count ?? 0;
+    const matchingUsers = matchingUserIds.length;
+
+    return {
+      matchingUsers,
+      availableCodes,
+      canProceed: creditType.isActive && availableCodes >= matchingUsers && matchingUsers > 0,
+      creditType: {
+        id: creditType.id,
+        name: creditType.name,
+        displayName: creditType.displayName,
+        isActive: creditType.isActive,
+      },
+    };
+  });
+
+async function getMatchingUserIds(roles: string[], checkinTypeId?: string): Promise<string[]> {
+  type UserRole = (typeof UserRoleCodes)[number];
+  const roleConditions: ReturnType<typeof eq>[] = [];
+
+  for (const role of roles) {
+    if (role === UserRoleEnum.participant) {
+      roleConditions.push(
+        and(eq(UsersTable.role, UserRoleEnum.participant), eq(UsersTable.participantType, ParticipantTypeEnum.regular))!
+      );
+    } else {
+      roleConditions.push(eq(UsersTable.role, role as UserRole));
+    }
+  }
+
+  if (roleConditions.length === 0) {
+    return [];
+  }
+
+  const roleFilter = roleConditions.length === 1 ? roleConditions[0] : sql`(${sql.join(roleConditions, sql` OR `)})`;
+
+  if (checkinTypeId) {
+    const usersWithCheckin = await db
+      .selectDistinct({ id: UsersTable.id })
+      .from(UsersTable)
+      .innerJoin(CheckinRecordsTable, eq(UsersTable.id, CheckinRecordsTable.participantId))
+      .where(and(roleFilter, eq(CheckinRecordsTable.checkinTypeId, checkinTypeId)));
+
+    return usersWithCheckin.map((u) => u.id);
+  }
+
+  const users = await db.select({ id: UsersTable.id }).from(UsersTable).where(roleFilter);
+
+  return users.map((u) => u.id);
+}
+
+const executeGiveawayInputSchema = z.object({
+  creditTypeId: z.string().min(1, 'Credit type ID is required'),
+  roles: z.array(z.enum(UserRoleCodes)).min(1, 'At least one role is required'),
+  checkinTypeId: z.string().optional(),
+});
+
+export type ExecuteGiveawayInput = z.infer<typeof executeGiveawayInputSchema>;
+
+type AssignedCodeForEmail = {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  codeValue: string;
+  redeemUrl: string | null;
+};
+
+export type ExecuteGiveawayResult = {
+  success: boolean;
+  codesAssigned: number;
+  assignedCodes: AssignedCodeForEmail[];
+  creditType: {
+    id: string;
+    name: string;
+    displayName: string;
+    emailInstructions: string | null;
+  };
+};
+
+export const executeGiveaway = createServerFn({ method: 'POST' })
+  .validator((data: ExecuteGiveawayInput) => executeGiveawayInputSchema.parse(data))
+  .handler(async ({ data }): Promise<ExecuteGiveawayResult> => {
+    await requireAdmin();
+
+    const { creditTypeId, roles, checkinTypeId } = data;
+
+    const creditType = await db.query.creditTypes.findFirst({
+      where: eq(CreditTypesTable.id, creditTypeId),
+    });
+
+    if (!creditType) {
+      throw new Error('Credit type not found');
+    }
+
+    if (!creditType.isActive) {
+      throw new Error('Credit type is not active');
+    }
+
+    const userIds = await getMatchingUserIds(roles, checkinTypeId);
+
+    if (userIds.length === 0) {
+      throw new Error('No users match the selected criteria');
+    }
+
+    const users = await db
+      .select({ id: UsersTable.id, name: UsersTable.name, email: UsersTable.email })
+      .from(UsersTable)
+      .where(inArray(UsersTable.id, userIds));
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    const assignedCodes: AssignedCodeForEmail[] = [];
+
+    await db.transaction(async (tx) => {
+      for (const userId of userIds) {
+        const [code] = await tx
+          .select()
+          .from(CodesTable)
+          .where(
+            and(
+              eq(CodesTable.creditTypeId, creditTypeId),
+              eq(CodesTable.status, CodeStatusEnum.unassigned),
+              isNull(CodesTable.assignedTo)
+            )
+          )
+          .limit(1)
+          .for('update', { skipLocked: true });
+
+        if (!code) {
+          throw new Error(
+            `Insufficient codes in pool. Only ${assignedCodes.length} codes were available for ${userIds.length} users.`
+          );
+        }
+
+        await tx
+          .update(CodesTable)
+          .set({
+            assignedTo: userId,
+            assignedAt: new Date(),
+            status: CodeStatusEnum.available,
+          })
+          .where(eq(CodesTable.id, code.id));
+
+        const user = userMap.get(userId);
+        if (user) {
+          assignedCodes.push({
+            userId: user.id,
+            userName: user.name,
+            userEmail: user.email,
+            codeValue: code.codeValue,
+            redeemUrl: code.redeemUrl,
+          });
+        }
+      }
+    });
+
+    logInfo('Giveaway executed successfully', {
+      creditTypeId,
+      creditTypeName: creditType.name,
+      codesAssigned: assignedCodes.length,
+      roles,
+      checkinTypeId,
+    });
+
+    sendGiveawayEmails(assignedCodes, creditType);
+
+    return {
+      success: true,
+      codesAssigned: assignedCodes.length,
+      assignedCodes,
+      creditType: {
+        id: creditType.id,
+        name: creditType.name,
+        displayName: creditType.displayName,
+        emailInstructions: creditType.emailInstructions,
+      },
+    };
+  });
+
+function sendGiveawayEmails(
+  assignedCodes: AssignedCodeForEmail[],
+  creditType: { displayName: string; emailInstructions: string | null }
+) {
+  for (const assigned of assignedCodes) {
+    sendGiveawayNotificationEmail({
+      to: assigned.userEmail,
+      name: assigned.userName,
+      codes: [
+        {
+          creditType: {
+            displayName: creditType.displayName,
+            emailInstructions: creditType.emailInstructions,
+          },
+          code: {
+            codeValue: assigned.codeValue,
+            redeemUrl: assigned.redeemUrl,
+          },
+        },
+      ],
+    })
+      .then((result) => {
+        if (!result.success) {
+          logError('Failed to send giveaway notification email', {
+            userId: assigned.userId,
+            email: assigned.userEmail,
+            error: result.error,
+          });
+        }
+      })
+      .catch((err) => {
+        logError('Exception sending giveaway notification email', {
+          userId: assigned.userId,
+          email: assigned.userEmail,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      });
+  }
+}

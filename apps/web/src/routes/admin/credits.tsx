@@ -2,18 +2,22 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { type ColumnDef } from '@tanstack/react-table';
-import { AlertCircle, CheckCircle2, Download, Edit2, Loader2, Plus, Power, Trash2, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Download, Edit2, Gift, Loader2, Plus, Power, Trash2, Upload } from 'lucide-react';
 
 import {
   CodeDistributionTypeEnum,
   CreditCategories,
+  UserRoles,
   type CodeDistributionType,
   type CreditCategory,
+  type UserRole,
 } from '@base/core/config/constant';
 import { Button } from '@base/ui/components/button';
+import { Checkbox } from '@base/ui/components/checkbox';
 import { DataTable } from '@base/ui/components/data-table';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -26,14 +30,19 @@ import { Input } from '@base/ui/components/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@base/ui/components/select';
 import { Textarea } from '@base/ui/components/textarea';
 
+import { listCheckinTypes } from '~/apis/admin/checkins';
 import {
   createCreditType,
   deleteCreditType,
+  executeGiveaway,
+  getGiveawayPreview,
   importCodes,
   listCreditTypes,
   toggleCreditTypeActive,
   updateCreditType,
   type CreateCreditTypeInput,
+  type ExecuteGiveawayInput,
+  type GiveawayPreviewInput,
   type ImportCodesInput,
   type UpdateCreditTypeInput,
 } from '~/apis/admin/credits';
@@ -112,6 +121,12 @@ function CreditsPage() {
     skipped: Array<{ codeValue: string; reason: string }>;
   } | null>(null);
 
+  const [giveawayDialogOpen, setGiveawayDialogOpen] = useState(false);
+  const [selectedCreditTypeForGiveaway, setSelectedCreditTypeForGiveaway] = useState<CreditType | null>(null);
+  const [giveawayRoles, setGiveawayRoles] = useState<UserRole[]>([]);
+  const [giveawayCheckinTypeId, setGiveawayCheckinTypeId] = useState<string>('all');
+  const [giveawayResult, setGiveawayResult] = useState<{ codesAssigned: number } | null>(null);
+
   const [formData, setFormData] = useState<CreditTypeFormData>({
     name: '',
     displayName: '',
@@ -130,6 +145,11 @@ function CreditsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['credit-types'],
     queryFn: () => listCreditTypes(),
+  });
+
+  const { data: checkinTypesData } = useQuery({
+    queryKey: ['checkin-types'],
+    queryFn: () => listCheckinTypes(),
   });
 
   const createMutation = useMutation({
@@ -169,6 +189,18 @@ function CreditsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteCreditType({ data: { id } }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credit-types'] });
+    },
+  });
+
+  const giveawayPreviewMutation = useMutation({
+    mutationFn: (input: GiveawayPreviewInput) => getGiveawayPreview({ data: input }),
+  });
+
+  const giveawayExecuteMutation = useMutation({
+    mutationFn: (input: ExecuteGiveawayInput) => executeGiveaway({ data: input }),
+    onSuccess: (result) => {
+      setGiveawayResult({ codesAssigned: result.codesAssigned });
       queryClient.invalidateQueries({ queryKey: ['credit-types'] });
     },
   });
@@ -300,6 +332,44 @@ function CreditsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const openGiveawayDialog = (creditType: CreditType) => {
+    setSelectedCreditTypeForGiveaway(creditType);
+    setGiveawayDialogOpen(true);
+  };
+
+  const resetGiveawayDialog = () => {
+    setGiveawayRoles([]);
+    setGiveawayCheckinTypeId('all');
+    setGiveawayResult(null);
+    giveawayPreviewMutation.reset();
+    giveawayExecuteMutation.reset();
+  };
+
+  const handleGiveawayPreview = () => {
+    if (!selectedCreditTypeForGiveaway || giveawayRoles.length === 0) return;
+
+    giveawayPreviewMutation.mutate({
+      creditTypeId: selectedCreditTypeForGiveaway.id,
+      roles: giveawayRoles,
+      checkinTypeId: giveawayCheckinTypeId === 'all' ? undefined : giveawayCheckinTypeId,
+    });
+  };
+
+  const handleGiveawayExecute = () => {
+    if (!selectedCreditTypeForGiveaway || giveawayRoles.length === 0) return;
+
+    giveawayExecuteMutation.mutate({
+      creditTypeId: selectedCreditTypeForGiveaway.id,
+      roles: giveawayRoles,
+      checkinTypeId: giveawayCheckinTypeId === 'all' ? undefined : giveawayCheckinTypeId,
+    });
+  };
+
+  const toggleGiveawayRole = (role: UserRole) => {
+    setGiveawayRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+    giveawayPreviewMutation.reset();
+  };
+
   const columns: ColumnDef<CreditType>[] = [
     {
       accessorKey: 'category',
@@ -381,6 +451,17 @@ function CreditsPage() {
                 <Upload className="h-4 w-4" />
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openGiveawayDialog(creditType)}
+              disabled={!creditType.isActive || creditType.poolStats.remaining === 0}
+              title="Giveaway Codes"
+            >
+              <Gift
+                className={`h-4 w-4 ${creditType.isActive && creditType.poolStats.remaining > 0 ? 'text-purple-600' : 'text-gray-400'}`}
+              />
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => openEditDialog(creditType)} title="Edit">
               <Edit2 className="h-4 w-4" />
             </Button>
@@ -454,9 +535,9 @@ function CreditsPage() {
             />
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Cancel
-              </Button>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
               <Button
                 onClick={handleCreate}
                 disabled={
@@ -519,9 +600,9 @@ function CreditsPage() {
           />
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
             <Button
               onClick={handleEdit}
               disabled={
@@ -580,9 +661,9 @@ function CreditsPage() {
               )}
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
-                  Close
-                </Button>
+                <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DialogClose>
               </DialogFooter>
             </div>
           ) : (
@@ -645,9 +726,9 @@ function CreditsPage() {
               )}
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
-                  Cancel
-                </Button>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
                 <Button
                   onClick={handleImport}
                   disabled={parsedRows.filter((r) => r.valid).length === 0 || importMutation.isPending}
@@ -659,6 +740,175 @@ function CreditsPage() {
                     </>
                   ) : (
                     `Import ${parsedRows.filter((r) => r.valid).length} Codes`
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={giveawayDialogOpen}
+        onOpenChange={(open) => {
+          setGiveawayDialogOpen(open);
+          if (!open) {
+            setSelectedCreditTypeForGiveaway(null);
+            resetGiveawayDialog();
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Giveaway Codes - {selectedCreditTypeForGiveaway?.displayName}</DialogTitle>
+            <DialogDescription>Distribute codes to users based on role and check-in filters</DialogDescription>
+          </DialogHeader>
+
+          {giveawayResult ? (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-3 rounded-lg bg-green-50 p-4">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="font-medium text-green-800">
+                    Successfully distributed {giveawayResult.codesAssigned} code
+                    {giveawayResult.codesAssigned !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm text-green-700">Email notifications are being sent to recipients</p>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DialogClose>
+              </DialogFooter>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Select Roles *</label>
+                  <div className="flex flex-col gap-2">
+                    {Object.values(UserRoles).map((role) => (
+                      <label key={role.code} className="flex cursor-pointer items-center gap-2">
+                        <Checkbox
+                          checked={giveawayRoles.includes(role.code)}
+                          onCheckedChange={() => toggleGiveawayRole(role.code)}
+                        />
+                        <span className="text-sm">{role.label}</span>
+                        {role.code === 'participant' && (
+                          <span className="text-xs text-gray-500">(Regular only, excludes VIP)</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Filter by Check-in (Optional)</label>
+                  <Select
+                    value={giveawayCheckinTypeId}
+                    onValueChange={(value) => {
+                      setGiveawayCheckinTypeId(value);
+                      giveawayPreviewMutation.reset();
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All users" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All users</SelectItem>
+                      {checkinTypesData?.checkinTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">Only distribute to users who checked in for this event</p>
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={handleGiveawayPreview}
+                  disabled={giveawayRoles.length === 0 || giveawayPreviewMutation.isPending}
+                  className="w-full"
+                >
+                  {giveawayPreviewMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Calculating...
+                    </>
+                  ) : (
+                    'Preview Distribution'
+                  )}
+                </Button>
+
+                {giveawayPreviewMutation.data && (
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Matching Users:</span>
+                      <span className="font-medium">{giveawayPreviewMutation.data.matchingUsers}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Available Codes:</span>
+                      <span className="font-medium">{giveawayPreviewMutation.data.availableCodes}</span>
+                    </div>
+
+                    {giveawayPreviewMutation.data.matchingUsers === 0 && (
+                      <div className="flex items-center gap-2 rounded bg-yellow-50 p-2 text-sm text-yellow-800">
+                        <AlertCircle className="h-4 w-4" />
+                        No users match the selected criteria
+                      </div>
+                    )}
+
+                    {giveawayPreviewMutation.data.availableCodes < giveawayPreviewMutation.data.matchingUsers && (
+                      <div className="flex items-center gap-2 rounded bg-red-50 p-2 text-sm text-red-800">
+                        <AlertCircle className="h-4 w-4" />
+                        Not enough codes! Need {giveawayPreviewMutation.data.matchingUsers}, only{' '}
+                        {giveawayPreviewMutation.data.availableCodes} available
+                      </div>
+                    )}
+
+                    {!giveawayPreviewMutation.data.creditType.isActive && (
+                      <div className="flex items-center gap-2 rounded bg-red-50 p-2 text-sm text-red-800">
+                        <AlertCircle className="h-4 w-4" />
+                        Credit type is inactive
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {giveawayPreviewMutation.error && (
+                  <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    {(giveawayPreviewMutation.error as Error).message}
+                  </div>
+                )}
+
+                {giveawayExecuteMutation.error && (
+                  <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    {(giveawayExecuteMutation.error as Error).message}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button
+                  onClick={handleGiveawayExecute}
+                  disabled={!giveawayPreviewMutation.data?.canProceed || giveawayExecuteMutation.isPending}
+                >
+                  {giveawayExecuteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Distributing...
+                    </>
+                  ) : (
+                    `Distribute ${giveawayPreviewMutation.data?.matchingUsers ?? 0} Codes`
                   )}
                 </Button>
               </DialogFooter>

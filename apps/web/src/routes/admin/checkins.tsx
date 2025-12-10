@@ -9,6 +9,7 @@ import { Button } from '@base/ui/components/button';
 import { DataTable } from '@base/ui/components/data-table';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -279,9 +280,9 @@ function CheckinTypesPage() {
             />
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Cancel
-              </Button>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
               <Button onClick={handleCreate} disabled={!formData.name || createMutation.isPending}>
                 {createMutation.isPending ? (
                   <>
@@ -328,9 +329,9 @@ function CheckinTypesPage() {
           <CheckinTypeForm formData={formData} setFormData={setFormData} error={updateMutation.error as Error | null} />
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
             <Button onClick={handleEdit} disabled={!formData.name || updateMutation.isPending}>
               {updateMutation.isPending ? (
                 <>
@@ -371,9 +372,9 @@ function CheckinTypesPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
             <Button
               variant="destructive"
               onClick={() => selectedCheckinType && deleteMutation.mutate(selectedCheckinType.id)}
