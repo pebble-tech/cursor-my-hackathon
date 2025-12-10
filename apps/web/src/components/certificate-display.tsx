@@ -10,9 +10,10 @@ import { exportCertificateAsPDF } from '~/utils/certificate-export';
 
 interface CertificateDisplayProps {
   participantName: string;
+  templateType?: 'participant' | 'ops';
 }
 
-export function CertificateDisplay({ participantName }: CertificateDisplayProps) {
+export function CertificateDisplay({ participantName, templateType = 'participant' }: CertificateDisplayProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -54,7 +55,7 @@ export function CertificateDisplay({ participantName }: CertificateDisplayProps)
           }}
         >
           <img
-            src="/certificate-participant-template.png"
+            src={`/certificate-${templateType}-template.png`}
             alt="Certificate template"
             className="absolute inset-0 h-full w-full object-contain"
             crossOrigin="anonymous"

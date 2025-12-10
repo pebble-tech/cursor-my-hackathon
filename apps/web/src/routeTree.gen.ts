@@ -20,6 +20,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OpsIndexRouteImport } from './routes/ops/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as OpsCertificateRouteImport } from './routes/ops/certificate'
 import { Route as AdminParticipantsRouteImport } from './routes/admin/participants'
 import { Route as AdminCreditsRouteImport } from './routes/admin/credits'
 import { Route as AdminCheckinsRouteImport } from './routes/admin/checkins'
@@ -72,6 +73,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const OpsCertificateRoute = OpsCertificateRouteImport.update({
+  id: '/certificate',
+  path: '/certificate',
+  getParentRoute: () => OpsRoute,
+} as any)
 const AdminParticipantsRoute = AdminParticipantsRouteImport.update({
   id: '/participants',
   path: '/participants',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
+  '/ops/certificate': typeof OpsCertificateRoute
   '/admin/': typeof AdminIndexRoute
   '/ops/': typeof OpsIndexRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
+  '/ops/certificate': typeof OpsCertificateRoute
   '/admin': typeof AdminIndexRoute
   '/ops': typeof OpsIndexRoute
 }
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/participants': typeof AdminParticipantsRoute
+  '/ops/certificate': typeof OpsCertificateRoute
   '/admin/': typeof AdminIndexRoute
   '/ops/': typeof OpsIndexRoute
 }
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/admin/checkins'
     | '/admin/credits'
     | '/admin/participants'
+    | '/ops/certificate'
     | '/admin/'
     | '/ops/'
   fileRoutesByTo: FileRoutesByTo
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/admin/checkins'
     | '/admin/credits'
     | '/admin/participants'
+    | '/ops/certificate'
     | '/admin'
     | '/ops'
   id:
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/admin/checkins'
     | '/admin/credits'
     | '/admin/participants'
+    | '/ops/certificate'
     | '/admin/'
     | '/ops/'
   fileRoutesById: FileRoutesById
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/ops/certificate': {
+      id: '/ops/certificate'
+      path: '/certificate'
+      fullPath: '/ops/certificate'
+      preLoaderRoute: typeof OpsCertificateRouteImport
+      parentRoute: typeof OpsRoute
+    }
     '/admin/participants': {
       id: '/admin/participants'
       path: '/participants'
@@ -325,10 +344,12 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface OpsRouteChildren {
+  OpsCertificateRoute: typeof OpsCertificateRoute
   OpsIndexRoute: typeof OpsIndexRoute
 }
 
 const OpsRouteChildren: OpsRouteChildren = {
+  OpsCertificateRoute: OpsCertificateRoute,
   OpsIndexRoute: OpsIndexRoute,
 }
 

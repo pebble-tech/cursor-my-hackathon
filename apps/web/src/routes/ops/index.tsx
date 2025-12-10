@@ -1,12 +1,16 @@
 import { startTransition, useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
-import { CheckCircle2, Clock, X } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Award, CheckCircle2, Clock, Eye, QrCode, User, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { CheckinTypeCategoryEnum, ParticipantTypeEnum } from '@base/core/config/constant';
 import { Button } from '@base/ui/components/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@base/ui/components/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@base/ui/components/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@base/ui/components/tabs';
 
+import { CertificateNameEditor } from '~/components/certificate-name-editor';
 import { QRScanner } from '~/components/qr-scanner';
 import {
   getCheckinCount,
@@ -17,6 +21,7 @@ import {
   type ProcessCheckinResult,
 } from '~/apis/ops/checkin';
 import { listCheckinTypes } from '~/apis/ops/checkin-types';
+import { getOpsProfile, updateOpsProfileName } from '~/apis/ops/profile';
 
 export const Route = createFileRoute('/ops/')({
   head: () => ({
@@ -25,7 +30,7 @@ export const Route = createFileRoute('/ops/')({
   component: OpsDashboardPage,
 });
 
-type Mode = 'checkin' | 'status';
+type Mode = 'checkin' | 'status' | 'certificate';
 
 type ScanResultPopupProps = {
   type: 'success' | 'error' | 'duplicate';
@@ -197,12 +202,30 @@ function GuestStatusPopup({ result, onClose, onScanAnother }: GuestStatusPopupPr
 }
 
 function OpsDashboardPage() {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('checkin');
   const [selectedCheckinTypeId, setSelectedCheckinTypeId] = useState<string | null>(null);
   const [scannerPaused, setScannerPaused] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResultPopupProps | null>(null);
   const [statusResult, setStatusResult] = useState<GuestStatusResult | null>(null);
   const queryClient = useQueryClient();
+
+  const { data: opsProfile } = useQuery({
+    queryKey: ['ops-profile'],
+    queryFn: () => getOpsProfile(),
+    enabled: mode === 'certificate',
+  });
+
+  const nameUpdateMutation = useMutation({
+    mutationFn: (name: string) => updateOpsProfileName({ data: { name } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ops-profile'] });
+      toast.success('Name updated');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update name');
+    },
+  });
 
   const { data: checkinTypesData } = useQuery({
     queryKey: ['ops', 'checkinTypes'],
@@ -327,34 +350,33 @@ function OpsDashboardPage() {
   const selectedCheckinType = checkinTypesData?.checkinTypes.find((t) => t.id === selectedCheckinTypeId);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex gap-4">
-        <Button
-          variant={mode === 'checkin' ? 'default' : 'outline'}
-          onClick={() => {
-            setMode('checkin');
-            setStatusResult(null);
-            setScannerPaused(false);
-          }}
-          className="flex-1"
-        >
-          Check-in Guest
-        </Button>
-        <Button
-          variant={mode === 'status' ? 'default' : 'outline'}
-          onClick={() => {
-            setMode('status');
-            setStatusResult(null);
-            setScannerPaused(false);
-          }}
-          className="flex-1"
-        >
-          Guest Status
-        </Button>
-      </div>
+    <div className="mx-auto max-w-4xl">
+      <Tabs
+        defaultValue="checkin"
+        value={mode}
+        onValueChange={(value) => {
+          setMode(value as Mode);
+          setStatusResult(null);
+          setScannerPaused(false);
+        }}
+        className="w-full"
+      >
+        <TabsList className="mb-6 grid w-full grid-cols-3">
+          <TabsTrigger value="checkin" className="gap-2">
+            <QrCode className="h-4 w-4" />
+            Check-in
+          </TabsTrigger>
+          <TabsTrigger value="status" className="gap-2">
+            <User className="h-4 w-4" />
+            Guest Status
+          </TabsTrigger>
+          <TabsTrigger value="certificate" className="gap-2">
+            <Award className="h-4 w-4" />
+            Certificate
+          </TabsTrigger>
+        </TabsList>
 
-      {mode === 'checkin' && (
-        <div className="space-y-6">
+        <TabsContent value="checkin" className="space-y-6">
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold">Select Check-in Type</h2>
             <div className="space-y-2">
@@ -433,17 +455,51 @@ function OpsDashboardPage() {
               </div>
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
 
-      {mode === 'status' && (
-        <div className="space-y-6">
+        <TabsContent value="status" className="space-y-6">
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold">Scan participant QR to view all statuses</h2>
             <QRScanner onScan={handleScan} paused={scannerPaused || getGuestStatusMutation.isPending} />
           </div>
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="certificate">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-base font-medium text-gray-500">Your Certificate</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-6">
+              {opsProfile ? (
+                <>
+                  <CertificateNameEditor
+                    currentName={opsProfile.name}
+                    onSave={async (newName) => {
+                      await nameUpdateMutation.mutateAsync(newName);
+                    }}
+                    isSaving={nameUpdateMutation.isPending}
+                    isLocked={opsProfile.isNameUpdated ?? false}
+                  />
+                  {opsProfile.isNameUpdated ? (
+                    <Button onClick={() => navigate({ to: '/ops/certificate' })}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View & Download Certificate
+                    </Button>
+                  ) : (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center">
+                      <p className="text-sm text-amber-800">
+                        Please save your certificate name above before viewing and downloading your certificate.
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900" />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {scanResult && <ScanResultPopup {...scanResult} />}
       {statusResult && (
