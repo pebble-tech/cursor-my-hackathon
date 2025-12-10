@@ -371,7 +371,13 @@ export const getGiveawayPreview = createServerFn({ method: 'POST' })
     const [availableCodesResult] = await db
       .select({ count: count() })
       .from(CodesTable)
-      .where(and(eq(CodesTable.creditTypeId, creditTypeId), eq(CodesTable.status, CodeStatusEnum.unassigned)));
+      .where(
+        and(
+          eq(CodesTable.creditTypeId, creditTypeId),
+          eq(CodesTable.status, CodeStatusEnum.unassigned),
+          isNull(CodesTable.assignedTo)
+        )
+      );
 
     const availableCodes = availableCodesResult?.count ?? 0;
     const matchingUsers = matchingUserIds.length;
