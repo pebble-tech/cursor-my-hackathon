@@ -113,6 +113,31 @@ function LoginPage() {
               </div>
             )}
 
+            <div>
+              <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={loading}>
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <svg className="mr-2 h-5 w-5" aria-hidden="true" viewBox="0 0 24 24">
+                    <path
+                      d="M12.0003 20.45C16.6663 20.45 20.587 17.178 21.954 12.954H12.0003V9.54599H23.5453C23.6863 10.273 23.7723 11.045 23.7723 11.864C23.7723 18.591 18.4993 24 12.0003 24C5.3723 24 0.000299454 18.628 0.000299454 12C0.000299454 5.372 5.3723 0 12.0003 0C15.0003 0 17.6623 1.028 19.7663 2.737L17.2543 5.25C15.9913 4.178 14.1893 3.546 12.0003 3.546C7.5533 3.546 3.8153 6.955 3.5683 11.318H3.5633V11.326C3.4803 11.545 3.4383 11.77 3.4383 12C3.4383 12.23 3.4803 12.455 3.5633 12.674V12.682H3.5683C3.8153 17.045 7.5533 20.45 12.0003 20.45Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                )}
+                Continue with Google
+              </Button>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-gray-500">or</span>
+              </div>
+            </div>
+
             <div className="rounded-lg bg-white">
               <form className="space-y-4" onSubmit={handleMagicLink}>
                 <div>
@@ -143,31 +168,6 @@ function LoginPage() {
                   )}
                 </Button>
               </form>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-gray-500">or</span>
-              </div>
-            </div>
-
-            <div>
-              <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={loading}>
-                {loading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <svg className="mr-2 h-5 w-5" aria-hidden="true" viewBox="0 0 24 24">
-                    <path
-                      d="M12.0003 20.45C16.6663 20.45 20.587 17.178 21.954 12.954H12.0003V9.54599H23.5453C23.6863 10.273 23.7723 11.045 23.7723 11.864C23.7723 18.591 18.4993 24 12.0003 24C5.3723 24 0.000299454 18.628 0.000299454 12C0.000299454 5.372 5.3723 0 12.0003 0C15.0003 0 17.6623 1.028 19.7663 2.737L17.2543 5.25C15.9913 4.178 14.1893 3.546 12.0003 3.546C7.5533 3.546 3.8153 6.955 3.5683 11.318H3.5633V11.326C3.4803 11.545 3.4383 11.77 3.4383 12C3.4383 12.23 3.4803 12.455 3.5633 12.674V12.682H3.5683C3.8153 17.045 7.5533 20.45 12.0003 20.45Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                )}
-                Continue with Google
-              </Button>
             </div>
           </div>
         )}
