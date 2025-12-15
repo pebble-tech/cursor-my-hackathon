@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Download,
   Edit,
+  Gift,
   History,
   Loader2,
   Mail,
@@ -41,6 +42,14 @@ import { FileUpload } from '@base/ui/components/file-upload';
 import { Input } from '@base/ui/components/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@base/ui/components/select';
 
+import {
+  assignCodeToUser,
+  getUserCodes,
+  listCreditTypes,
+  unassignCodeFromUser,
+  type AssignCodeToUserInput,
+  type UnassignCodeFromUserInput,
+} from '~/apis/admin/credits';
 import { getWelcomeEmailStats, sendWelcomeEmailToUser, sendWelcomeEmails } from '~/apis/admin/emails';
 import {
   createUser,
@@ -147,6 +156,7 @@ const columns: ColumnDef<Participant>[] = [
         onDelete?: (participant: Participant) => void;
         onViewLog?: (participant: Participant) => void;
         onSendEmail?: (participant: Participant) => void;
+        onManageCodes?: (participant: Participant) => void;
         sendingEmailUserId?: string | null;
       };
       return (
@@ -161,20 +171,31 @@ const columns: ColumnDef<Participant>[] = [
             <History className="h-4 w-4" />
           </Button>
           {participant.role === 'participant' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => meta.onSendEmail?.(participant)}
-              className="h-8 w-8 p-0"
-              title="Send/Retry Email"
-              disabled={meta.sendingEmailUserId === participant.id}
-            >
-              {meta.sendingEmailUserId === participant.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <MailPlus className="h-4 w-4" />
-              )}
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => meta.onSendEmail?.(participant)}
+                className="h-8 w-8 p-0"
+                title="Send/Retry Email"
+                disabled={meta.sendingEmailUserId === participant.id}
+              >
+                {meta.sendingEmailUserId === participant.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MailPlus className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => meta.onManageCodes?.(participant)}
+                className="h-8 w-8 p-0"
+                title="Manage Codes"
+              >
+                <Gift className="h-4 w-4" />
+              </Button>
+            </>
           )}
           <Button variant="ghost" size="sm" onClick={() => meta.onEdit?.(participant)} className="h-8 w-8 p-0">
             <Edit className="h-4 w-4" />
@@ -208,10 +229,12 @@ function ParticipantsPage() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [sendEmailDialogOpen, setSendEmailDialogOpen] = useState(false);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [manageCodesDialogOpen, setManageCodesDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Participant | null>(null);
   const [deletingUser, setDeletingUser] = useState<Participant | null>(null);
   const [viewingLogUser, setViewingLogUser] = useState<Participant | null>(null);
   const [sendingEmailUser, setSendingEmailUser] = useState<Participant | null>(null);
+  const [managingCodesUser, setManagingCodesUser] = useState<Participant | null>(null);
   const [sendingEmailUserId, setSendingEmailUserId] = useState<string | null>(null);
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -407,6 +430,11 @@ function ParticipantsPage() {
   const handleSendEmail = (participant: Participant) => {
     setSendingEmailUser(participant);
     setSendEmailDialogOpen(true);
+  };
+
+  const handleManageCodes = (participant: Participant) => {
+    setManagingCodesUser(participant);
+    setManageCodesDialogOpen(true);
   };
 
   const handleConfirmSendEmail = () => {
@@ -852,6 +880,7 @@ function ParticipantsPage() {
             onDelete: handleDelete,
             onViewLog: handleViewLog,
             onSendEmail: handleSendEmail,
+            onManageCodes: handleManageCodes,
             sendingEmailUserId,
           }}
         />
@@ -1031,6 +1060,27 @@ function ParticipantsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Manage Codes Dialog */}
+      <Dialog
+        open={manageCodesDialogOpen}
+        onOpenChange={(open) => {
+          setManageCodesDialogOpen(open);
+          if (!open) {
+            setManagingCodesUser(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          {managingCodesUser && (
+            <ManageCodesModal
+              userId={managingCodesUser.id}
+              userName={managingCodesUser.name}
+              userEmail={managingCodesUser.email}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1163,6 +1213,222 @@ function OpsActivityLogView({ userId, userName, userRole }: { userId: string; us
             </table>
           </div>
         )}
+      </div>
+    </>
+  );
+}
+
+function ManageCodesModal({ userId, userName, userEmail }: { userId: string; userName: string; userEmail: string }) {
+  const queryClient = useQueryClient();
+  const [assignCreditTypeId, setAssignCreditTypeId] = useState<string>('');
+  const [sendEmail, setSendEmail] = useState(false);
+
+  const { data: userCodesData, isLoading: isLoadingCodes } = useQuery({
+    queryKey: ['user-codes', userId],
+    queryFn: () => getUserCodes({ data: { userId } }),
+  });
+
+  const { data: creditTypesData } = useQuery({
+    queryKey: ['credit-types-list'],
+    queryFn: () => listCreditTypes(),
+  });
+
+  const assignCodeMutation = useMutation({
+    mutationFn: (input: AssignCodeToUserInput) => assignCodeToUser({ data: input }),
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ['user-codes', userId] });
+        queryClient.invalidateQueries({ queryKey: ['credit-types-list'] });
+        setAssignCreditTypeId('');
+        setSendEmail(false);
+      }
+    },
+  });
+
+  const unassignCodeMutation = useMutation({
+    mutationFn: (input: UnassignCodeFromUserInput) => unassignCodeFromUser({ data: input }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-codes', userId] });
+      queryClient.invalidateQueries({ queryKey: ['credit-types-list'] });
+    },
+  });
+
+  const handleAssignCode = () => {
+    if (!assignCreditTypeId) return;
+    assignCodeMutation.mutate({
+      userId,
+      creditTypeId: assignCreditTypeId,
+      sendEmail,
+    });
+  };
+
+  const handleUnassignCode = (codeId: string) => {
+    if (confirm('Are you sure you want to unassign this code? It will be returned to the available pool.')) {
+      unassignCodeMutation.mutate({ codeId });
+    }
+  };
+
+  const formatTime = (date: Date | null) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const availableCreditTypes = creditTypesData?.creditTypes.filter((ct) => ct.isActive) || [];
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Manage Codes: {userName}</DialogTitle>
+        <DialogDescription>
+          Assign or unassign codes for {userName} ({userEmail})
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-6 py-4">
+        {/* Assign New Code Section */}
+        <div className="rounded-lg border p-4">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900">Assign New Code</h3>
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-2">
+              <label className="text-sm font-medium">Credit Type</label>
+              <Select value={assignCreditTypeId} onValueChange={setAssignCreditTypeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select credit type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCreditTypes.length === 0 ? (
+                    <div className="px-2 py-4 text-center text-sm text-gray-500">No active credit types available</div>
+                  ) : (
+                    availableCreditTypes.map((ct) => (
+                      <SelectItem key={ct.id} value={ct.id}>
+                        {ct.displayName} ({ct.poolStats.remaining} available)
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={handleAssignCode}
+              disabled={!assignCreditTypeId || assignCodeMutation.isPending || availableCreditTypes.length === 0}
+            >
+              {assignCodeMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                'Assign Code'
+              )}
+            </Button>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="send-email"
+              checked={sendEmail}
+              onChange={(e) => setSendEmail(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <label htmlFor="send-email" className="text-sm text-gray-600">
+              Send email notification to user
+            </label>
+          </div>
+
+          {assignCodeMutation.isError && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4" />
+              {(assignCodeMutation.error as Error).message}
+            </div>
+          )}
+
+          {assignCodeMutation.isSuccess && !assignCodeMutation.data.success && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4" />
+              {assignCodeMutation.data.message}
+            </div>
+          )}
+
+          {assignCodeMutation.isSuccess && assignCodeMutation.data.success && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
+              <CheckCircle2 className="h-4 w-4" />
+              {assignCodeMutation.data.message}
+            </div>
+          )}
+        </div>
+
+        {/* Assigned Codes List */}
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-gray-900">Assigned Codes</h3>
+          {isLoadingCodes ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            </div>
+          ) : !userCodesData?.codes.length ? (
+            <div className="rounded-lg border p-8 text-center text-gray-500">No codes assigned yet</div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Credit Type</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Code</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Assigned At</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userCodesData.codes.map((code) => (
+                    <tr key={code.id} className="border-t">
+                      <td className="px-4 py-3">{code.creditType.displayName}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{code.codeValue}</td>
+                      <td className="px-4 py-3">
+                        {code.status === 'redeemed' ? (
+                          <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                            Redeemed
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+                            Available
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{formatTime(code.assignedAt)}</td>
+                      <td className="px-4 py-3">
+                        {code.status !== 'redeemed' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUnassignCode(code.id)}
+                            className="h-8 text-xs text-red-600 hover:text-red-700"
+                            disabled={unassignCodeMutation.isPending}
+                          >
+                            {unassignCodeMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Unassign'}
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {unassignCodeMutation.isError && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4" />
+              {(unassignCodeMutation.error as Error).message}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

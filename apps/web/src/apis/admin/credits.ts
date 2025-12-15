@@ -641,3 +641,289 @@ async function sendGiveawayEmails(
     batches: batches.length,
   });
 }
+
+const assignCodeToUserInputSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  creditTypeId: z.string().min(1, 'Credit type ID is required'),
+  sendEmail: z.boolean().default(false),
+});
+
+export type AssignCodeToUserInput = z.infer<typeof assignCodeToUserInputSchema>;
+
+export type AssignCodeToUserResult = {
+  success: boolean;
+  message: string;
+  assignedCode?: {
+    codeValue: string;
+    redeemUrl: string | null;
+  };
+  creditType?: {
+    id: string;
+    name: string;
+    displayName: string;
+  };
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+};
+
+export const assignCodeToUser = createServerFn({ method: 'POST' })
+  .validator((data: AssignCodeToUserInput) => assignCodeToUserInputSchema.parse(data))
+  .handler(async ({ data }): Promise<AssignCodeToUserResult> => {
+    await requireAdmin();
+
+    const { userId, creditTypeId, sendEmail } = data;
+
+    const user = await db.query.users.findFirst({
+      where: eq(UsersTable.id, userId),
+    });
+
+    if (!user) {
+      return { success: false, message: 'User not found' };
+    }
+
+    const creditType = await db.query.creditTypes.findFirst({
+      where: eq(CreditTypesTable.id, creditTypeId),
+    });
+
+    if (!creditType) {
+      return { success: false, message: 'Credit type not found' };
+    }
+
+    let assignedCode: typeof CodesTable.$inferSelect | undefined;
+
+    await db.transaction(async (tx) => {
+      const [code] = await tx
+        .select()
+        .from(CodesTable)
+        .where(
+          and(
+            eq(CodesTable.creditTypeId, creditTypeId),
+            eq(CodesTable.status, CodeStatusEnum.unassigned),
+            isNull(CodesTable.assignedTo)
+          )
+        )
+        .limit(1)
+        .for('update', { skipLocked: true });
+
+      if (!code) {
+        throw new Error(`No available codes in pool for ${creditType.displayName}`);
+      }
+
+      await tx
+        .update(CodesTable)
+        .set({
+          assignedTo: userId,
+          assignedAt: new Date(),
+          status: CodeStatusEnum.available,
+        })
+        .where(eq(CodesTable.id, code.id));
+
+      assignedCode = code;
+    });
+
+    if (!assignedCode) {
+      return {
+        success: false,
+        message: `Failed to assign code for ${creditType.displayName}`,
+      };
+    }
+
+    logInfo('Ad-hoc code assignment completed', {
+      userId,
+      userName: user.name,
+      creditTypeId,
+      creditTypeName: creditType.name,
+      codeId: assignedCode.id,
+    });
+
+    if (sendEmail) {
+      const { html, text } = generateGiveawayEmailContent(user.name, [
+        {
+          creditType: {
+            displayName: creditType.displayName,
+            emailInstructions: creditType.emailInstructions,
+          },
+          code: {
+            codeValue: assignedCode.codeValue,
+            redeemUrl: assignedCode.redeemUrl,
+          },
+        },
+      ]);
+
+      const emailResult = await sendBatchEmails(
+        [
+          {
+            to: user.email,
+            subject: GIVEAWAY_EMAIL_SUBJECT,
+            html,
+            text,
+          },
+        ],
+        { batchValidation: 'permissive' }
+      );
+
+      if (!emailResult.success) {
+        logError('Failed to send ad-hoc assignment email', {
+          userId,
+          email: user.email,
+          error: emailResult.error,
+        });
+      } else {
+        logInfo('Ad-hoc assignment email sent', {
+          userId,
+          email: user.email,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Successfully assigned ${creditType.displayName} code to ${user.name}`,
+      assignedCode: {
+        codeValue: assignedCode.codeValue,
+        redeemUrl: assignedCode.redeemUrl,
+      },
+      creditType: {
+        id: creditType.id,
+        name: creditType.name,
+        displayName: creditType.displayName,
+      },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    };
+  });
+
+const getUserCodesInputSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+});
+
+export type GetUserCodesInput = z.infer<typeof getUserCodesInputSchema>;
+
+export type UserCodeAssignment = {
+  id: string;
+  codeValue: string;
+  redeemUrl: string | null;
+  status: string;
+  assignedAt: Date | null;
+  redeemedAt: Date | null;
+  creditType: {
+    id: string;
+    name: string;
+    displayName: string;
+    category: string;
+  };
+};
+
+export const getUserCodes = createServerFn({ method: 'POST' })
+  .validator((data: GetUserCodesInput) => getUserCodesInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+
+    const { userId } = data;
+
+    const user = await db.query.users.findFirst({
+      where: eq(UsersTable.id, userId),
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const codes = await db
+      .select({
+        id: CodesTable.id,
+        codeValue: CodesTable.codeValue,
+        redeemUrl: CodesTable.redeemUrl,
+        status: CodesTable.status,
+        assignedAt: CodesTable.assignedAt,
+        redeemedAt: CodesTable.redeemedAt,
+        creditTypeId: CreditTypesTable.id,
+        creditTypeName: CreditTypesTable.name,
+        creditTypeDisplayName: CreditTypesTable.displayName,
+        creditTypeCategory: CreditTypesTable.category,
+      })
+      .from(CodesTable)
+      .innerJoin(CreditTypesTable, eq(CodesTable.creditTypeId, CreditTypesTable.id))
+      .where(eq(CodesTable.assignedTo, userId))
+      .orderBy(asc(CodesTable.assignedAt));
+
+    const assignments: UserCodeAssignment[] = codes.map((code) => ({
+      id: code.id,
+      codeValue: code.codeValue,
+      redeemUrl: code.redeemUrl,
+      status: code.status,
+      assignedAt: code.assignedAt,
+      redeemedAt: code.redeemedAt,
+      creditType: {
+        id: code.creditTypeId,
+        name: code.creditTypeName,
+        displayName: code.creditTypeDisplayName,
+        category: code.creditTypeCategory,
+      },
+    }));
+
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+      codes: assignments,
+    };
+  });
+
+const unassignCodeFromUserInputSchema = z.object({
+  codeId: z.string().min(1, 'Code ID is required'),
+});
+
+export type UnassignCodeFromUserInput = z.infer<typeof unassignCodeFromUserInputSchema>;
+
+export const unassignCodeFromUser = createServerFn({ method: 'POST' })
+  .validator((data: UnassignCodeFromUserInput) => unassignCodeFromUserInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+
+    const { codeId } = data;
+
+    const code = await db.query.codes.findFirst({
+      where: eq(CodesTable.id, codeId),
+    });
+
+    if (!code) {
+      throw new Error('Code not found');
+    }
+
+    if (!code.assignedTo) {
+      throw new Error('Code is not assigned to any user');
+    }
+
+    if (code.status === CodeStatusEnum.redeemed) {
+      throw new Error('Cannot unassign a redeemed code');
+    }
+
+    const [updatedCode] = await db
+      .update(CodesTable)
+      .set({
+        assignedTo: null,
+        assignedAt: null,
+        status: CodeStatusEnum.unassigned,
+      })
+      .where(eq(CodesTable.id, codeId))
+      .returning();
+
+    logInfo('Code unassigned from user', {
+      codeId: updatedCode.id,
+      previouslyAssignedTo: code.assignedTo,
+    });
+
+    return {
+      success: true,
+      message: 'Code successfully unassigned and returned to pool',
+    };
+  });
